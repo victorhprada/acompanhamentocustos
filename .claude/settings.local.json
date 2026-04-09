@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f \"uvicorn app.main:app\")",
+      "Bash(curl -s http://localhost:8000/health)",
+      "Bash(uvicorn app.main:app --reload --host 0.0.0.0 --port 8000)",
+      "Bash(supabase db:*)"
+    ]
+  }
+}

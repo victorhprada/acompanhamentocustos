@@ -1,0 +1,43 @@
+export interface Company {
+  id: string;
+  company_id: string;
+  empresa: string;
+  cnpj: string;
+  razao_social?: string;
+  cliente?: string;
+  email_envio?: string;
+  inicio_cobranca?: string;
+  vencimento?: number;
+  nota_fiscal_descricao?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MonthlyRecord {
+  id: string;
+  company_id: string;
+  mes_ano: string;
+  produto: string;
+  elegiveis_contrato?: number;
+  elegiveis?: number;
+  valor_elegivel?: number;
+  valor_final?: number;
+  elegiveis_totalpass_gympass?: number;
+  vidas_cobradas?: number;
+  nr_vidas?: number;
+  valor_vidas?: number;
+  nr_cartao_contrato_flex?: number;
+  nr_cartao_carga_flex?: number;
+  rs_carregado?: number;
+  media_cartao_realizado?: number;
+  media_contratada?: number;
+  valor_elegivel_wiipo?: number;
+  faturamento_wiipo?: number;
+  mensal_x_rentabilidade?: string;
+  custo_por_cliente?: number;
+  valor_faturado?: number;
+  faturamento?: number;
+  created_at: string;
+  updated_at: string;
+}
