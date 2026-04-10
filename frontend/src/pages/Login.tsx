@@ -1,8 +1,12 @@
 import { useState, FormEvent } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  import.meta.env.VITE_SUPABASE_URL || 'https://yoeurzimmmzpgjvnkqcx.supabase.co',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+);
 
 export default function Login() {
-  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -14,7 +18,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await signIn(email, password);
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) throw signInError;
+      
+      // On successful login, App.tsx will handle profile loading via onAuthStateChange
+      if (data.user) {
+        // Redirect to home - AuthProvider will detect session
+        window.location.href = '/';
+      }
     } catch (err: any) {
       setError(err.message || 'Invalid email or password');
     } finally {
