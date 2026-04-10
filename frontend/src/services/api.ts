@@ -1,12 +1,30 @@
 import { Company, MonthlyRecord } from '../types';
+import { supabase } from '../lib/supabase';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+  // Get current session token
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
+  const headers: Record<string, any> = { 
+    'Content-Type': 'application/json',
+    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(options?.headers || {}),
+  };
+
   const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers,
     ...options,
   });
+  
+  if (response.status === 401) {
+    // Session expired - redirect to login
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+  
   if (!response.ok) throw new Error(`API error: ${response.status}`);
   if (response.status === 204) return null as T;
   return response.json();

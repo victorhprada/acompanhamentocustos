@@ -1,3 +1,57 @@
+Feature: User Authentication # specs/features/authentication.feature:1
+  As a registered user
+  I want to authenticate securely
+  So that I can access the system according to my role
+  Feature: User Authentication  # specs/features/authentication.feature:1
+
+  Scenario: User logs in successfully               # specs/features/authentication.feature:14
+    Given the Supabase authentication is configured # specs/steps/system_steps.py:37
+    And the following users exist:                  # specs/steps/system_steps.py:42
+      | email               | role    | full_name    |
+      | admin@empresa.com   | admin   | Admin User   |
+      | analyst@empresa.com | analyst | Analyst User |
+      | viewer@empresa.com  | viewer  | Viewer User  |
+    Given I am on the login page                    # specs/steps/auth_steps.py:7
+    When I enter valid credentials                  # specs/steps/auth_steps.py:95
+    Then I am redirected to the dashboard           # specs/steps/auth_steps.py:186
+    And my role is displayed in the header          # specs/steps/auth_steps.py:192
+
+  Scenario: User logs in with invalid credentials           # specs/features/authentication.feature:20
+    Given the Supabase authentication is configured         # specs/steps/system_steps.py:37
+    And the following users exist:                          # specs/steps/system_steps.py:42
+      | email               | role    | full_name    |
+      | admin@empresa.com   | admin   | Admin User   |
+      | analyst@empresa.com | analyst | Analyst User |
+      | viewer@empresa.com  | viewer  | Viewer User  |
+    Given I am on the login page                            # specs/steps/auth_steps.py:7
+    When I enter invalid credentials                        # specs/steps/auth_steps.py:104
+    Then I see an error message "Invalid email or password" # specs/steps/auth_steps.py:196
+    And I remain on the login page                          # specs/steps/auth_steps.py:202
+
+  Scenario: User session expires                              # specs/features/authentication.feature:26
+    Given the Supabase authentication is configured           # specs/steps/system_steps.py:37
+    And the following users exist:                            # specs/steps/system_steps.py:42
+      | email               | role    | full_name    |
+      | admin@empresa.com   | admin   | Admin User   |
+      | analyst@empresa.com | analyst | Analyst User |
+      | viewer@empresa.com  | viewer  | Viewer User  |
+    Given I am logged in                                      # specs/steps/system_steps.py:52
+    When my session expires after inactivity                  # specs/steps/auth_steps.py:134
+    Then I am redirected to the login page                    # specs/steps/auth_steps.py:206
+    And I see a message "Session expired, please login again" # specs/steps/auth_steps.py:210
+
+  Scenario: User profile loads after login          # specs/features/authentication.feature:32
+    Given the Supabase authentication is configured # specs/steps/system_steps.py:37
+    And the following users exist:                  # specs/steps/system_steps.py:42
+      | email               | role    | full_name    |
+      | admin@empresa.com   | admin   | Admin User   |
+      | analyst@empresa.com | analyst | Analyst User |
+      | viewer@empresa.com  | viewer  | Viewer User  |
+    Given I am logged in as "analyst@empresa.com"   # specs/steps/system_steps.py:59
+    When I navigate to my profile                   # specs/steps/auth_steps.py:140
+    Then I see my full name, email, and role        # specs/steps/auth_steps.py:214
+    And I can update my profile information         # specs/steps/auth_steps.py:218
+
 Feature: Companies Management # specs/features/companies.feature:1
   As an analyst or admin
   I want to manage company registry data
@@ -7,9 +61,9 @@ Feature: Companies Management # specs/features/companies.feature:1
   @analyst @admin
   Scenario: Register a new company           # specs/features/companies.feature:11
     Given the API is running                 # specs/steps/company_steps.py:7
-    And I am logged in                       # specs/steps/system_steps.py:61
+    And I am logged in                       # specs/steps/system_steps.py:52
     Given I am on the "New Company" page     # specs/steps/company_steps.py:11
-    When I fill in the company form:         # specs/steps/company_steps.py:71
+    When I fill in the company form:         # specs/steps/company_steps.py:81
       | field        | value              |
       | company_id   | EMP001             |
       | empresa      | Empresa Alpha      |
@@ -17,109 +71,180 @@ Feature: Companies Management # specs/features/companies.feature:1
       | razao_social | Alpha Ltda         |
       | cliente      | João Silva         |
       | email_envio  | joao@alpha.com     |
-    And I save the company                   # specs/steps/company_steps.py:90
-    Then the company is created successfully # specs/steps/company_steps.py:220
-    And the API returns status 201           # specs/steps/company_steps.py:225
-    And I see the company in the list        # specs/steps/company_steps.py:230
+    And I save the company                   # specs/steps/company_steps.py:100
+    Then the company is created successfully # specs/steps/company_steps.py:256
+      ASSERT FAILED: Expected 200/201, got 400: {'detail': 'CNPJ already exists'}
+
+    And the API returns status 201           # None
+    And I see the company in the list        # None
 
   @analyst @admin
   Scenario: Company requires mandatory fields           # specs/features/companies.feature:27
     Given the API is running                            # specs/steps/company_steps.py:7
-    And I am logged in                                  # specs/steps/system_steps.py:61
+    And I am logged in                                  # specs/steps/system_steps.py:52
     Given I am on the "New Company" page                # specs/steps/company_steps.py:11
-    When I leave "empresa" empty                        # specs/steps/company_steps.py:76
-    And I save the company                              # specs/steps/company_steps.py:90
-    Then I see a validation error "Empresa is required" # specs/steps/company_steps.py:239
-    And the company is not created                      # specs/steps/company_steps.py:249
+    When I leave "empresa" empty                        # specs/steps/company_steps.py:86
+    And I save the company                              # specs/steps/company_steps.py:100
+    Then I see a validation error "Empresa is required" # specs/steps/company_steps.py:275
+    And the company is not created                      # specs/steps/company_steps.py:286
 
   @analyst @admin
   Scenario: Company CNPJ must be unique                                 # specs/features/companies.feature:35
     Given the API is running                                            # specs/steps/company_steps.py:7
-    And I am logged in                                                  # specs/steps/system_steps.py:61
-    Given a company exists with CNPJ "12.345.678/0001-90"               # specs/steps/company_steps.py:49
-    When I try to create another company with CNPJ "12.345.678/0001-90" # specs/steps/company_steps.py:81
-    And I save the company                                              # specs/steps/company_steps.py:90
-    Then I see a validation error "CNPJ already exists"                 # specs/steps/company_steps.py:239
-    And the company is not created                                      # specs/steps/company_steps.py:249
+    And I am logged in                                                  # specs/steps/system_steps.py:52
+    Given a company exists with CNPJ "12.345.678/0001-90"               # specs/steps/company_steps.py:59
+    When I try to create another company with CNPJ "12.345.678/0001-90" # specs/steps/company_steps.py:91
+    And I save the company                                              # specs/steps/company_steps.py:100
+    Then I see a validation error "CNPJ already exists"                 # specs/steps/company_steps.py:275
+      ASSERT FAILED: Expected error status, got 201
+
+    And the company is not created                                      # None
 
   @analyst @admin @viewer
   Scenario: View companies list                                # specs/features/companies.feature:43
     Given the API is running                                   # specs/steps/company_steps.py:7
-    And I am logged in                                         # specs/steps/system_steps.py:61
+    And I am logged in                                         # specs/steps/system_steps.py:52
     Given companies exist in the system                        # specs/steps/company_steps.py:19
-    When I navigate to "Companies" page                        # specs/steps/company_steps.py:213
-    Then I see a list of all active companies                  # specs/steps/company_steps.py:254
-    And each company shows: company_id, empresa, cnpj, cliente # specs/steps/company_steps.py:258
+    When I navigate to "Companies" page                        # specs/steps/company_steps.py:249
+    Then I see a list of all active companies                  # specs/steps/company_steps.py:291
+    And each company shows: company_id, empresa, cnpj, cliente # specs/steps/company_steps.py:295
 
   @analyst @admin @viewer
   Scenario: View company details                                            # specs/features/companies.feature:50
     Given the API is running                                                # specs/steps/company_steps.py:7
-    And I am logged in                                                      # specs/steps/system_steps.py:61
+    And I am logged in                                                      # specs/steps/system_steps.py:52
     Given a company exists with company_id "EMP001"                         # specs/steps/company_steps.py:27
-    When I click on the company                                             # specs/steps/company_steps.py:191
-    Then I see the full company details                                     # specs/steps/company_steps.py:265
-    And I see all fields: empresa, cnpj, razao_social, cliente, email_envio # specs/steps/company_steps.py:270
+    When I click on the company                                             # specs/steps/company_steps.py:223
+    Then I see the full company details                                     # specs/steps/company_steps.py:302
+    And I see all fields: empresa, cnpj, razao_social, cliente, email_envio # specs/steps/company_steps.py:307
 
   @analyst @admin
   Scenario: Update company information              # specs/features/companies.feature:57
     Given the API is running                        # specs/steps/company_steps.py:7
-    And I am logged in                              # specs/steps/system_steps.py:61
+    And I am logged in                              # specs/steps/system_steps.py:52
     Given a company exists with company_id "EMP001" # specs/steps/company_steps.py:27
     And I am on the company detail page             # specs/steps/company_steps.py:15
-    When I click "Edit Company"                     # specs/steps/company_steps.py:108
-    And I change the cliente to "Maria Santos"      # specs/steps/company_steps.py:112
-    And I click "Update"                            # specs/steps/company_steps.py:116
-    Then the company is updated                     # specs/steps/company_steps.py:276
-    And the cliente shows "Maria Santos"            # specs/steps/company_steps.py:281
+    When I click "Edit Company"                     # specs/steps/company_steps.py:140
+    And I change the cliente to "Maria Santos"      # specs/steps/company_steps.py:144
+    And I click "Update"                            # specs/steps/company_steps.py:148
+    Then the company is updated                     # specs/steps/company_steps.py:313
+    And the cliente shows "Maria Santos"            # specs/steps/company_steps.py:318
 
   @analyst @admin
   Scenario: Deactivate a company                          # specs/features/companies.feature:67
     Given the API is running                              # specs/steps/company_steps.py:7
-    And I am logged in                                    # specs/steps/system_steps.py:61
+    And I am logged in                                    # specs/steps/system_steps.py:52
     Given a company exists with company_id "EMP001"       # specs/steps/company_steps.py:27
-    When I click "Deactivate Company"                     # specs/steps/company_steps.py:139
-    And I confirm company deactivation                    # specs/steps/company_steps.py:143
-    Then the company is marked as inactive                # specs/steps/company_steps.py:287
-    And it no longer appears in the active companies list # specs/steps/company_steps.py:293
-    But its monthly records are preserved                 # specs/steps/company_steps.py:304
+    When I click "Deactivate Company"                     # specs/steps/company_steps.py:171
+    And I confirm company deactivation                    # specs/steps/company_steps.py:175
+    Then the company is marked as inactive                # specs/steps/company_steps.py:324
+    And it no longer appears in the active companies list # specs/steps/company_steps.py:330
+    But its monthly records are preserved                 # specs/steps/company_steps.py:341
 
   @admin
   Scenario: Delete a company                          # specs/features/companies.feature:76
     Given the API is running                          # specs/steps/company_steps.py:7
-    And I am logged in                                # specs/steps/system_steps.py:61
+    And I am logged in                                # specs/steps/system_steps.py:52
     Given a company exists with company_id "EMP003"   # specs/steps/company_steps.py:27
-    When I click "Delete Company"                     # specs/steps/company_steps.py:165
-    And I confirm company deletion                    # specs/steps/company_steps.py:169
-    Then the company is permanently removed           # specs/steps/company_steps.py:310
-    And all its monthly records are deleted (CASCADE) # specs/steps/system_steps.py:409
+    When I click "Delete Company"                     # specs/steps/company_steps.py:197
+    And I confirm company deletion                    # specs/steps/company_steps.py:201
+    Then the company is permanently removed           # specs/steps/company_steps.py:347
+    And all its monthly records are deleted (CASCADE) # specs/steps/system_steps.py:412
 
   @viewer
   Scenario: Viewer cannot create companies         # specs/features/companies.feature:84
     Given the API is running                       # specs/steps/company_steps.py:7
-    And I am logged in                             # specs/steps/system_steps.py:61
-    Given I am logged in as "viewer"               # specs/steps/system_steps.py:68
-    When I navigate to the companies page          # specs/steps/company_steps.py:206
-    Then I do not see a "New Company" button       # None
-    And I cannot access the creation page directly # None
+    And I am logged in                             # specs/steps/system_steps.py:52
+    Given I am logged in as "viewer"               # specs/steps/system_steps.py:59
+    When I navigate to the companies page          # specs/steps/company_steps.py:242
+    Then I do not see a "New Company" button       # specs/steps/auth_steps.py:60
+    And I cannot access the creation page directly # specs/steps/auth_steps.py:226
 
   @viewer
   Scenario: Viewer cannot edit companies       # specs/features/companies.feature:91
     Given the API is running                   # specs/steps/company_steps.py:7
-    And I am logged in                         # specs/steps/system_steps.py:61
-    Given a company exists                     # None
-    And I am logged in as "viewer"             # None
-    When I view the company details            # None
-    Then I do not see an "Edit" button         # None
-    And I cannot access the edit page directly # None
+    And I am logged in                         # specs/steps/system_steps.py:52
+    Given a company exists                     # specs/steps/auth_steps.py:25
+    And I am logged in as "viewer"             # specs/steps/system_steps.py:59
+    When I view the company details            # specs/steps/auth_steps.py:42
+    Then I do not see an "Edit" button         # specs/steps/auth_steps.py:230
+    And I cannot access the edit page directly # specs/steps/auth_steps.py:234
 
   @viewer
   Scenario: Viewer cannot delete companies  # specs/features/companies.feature:99
     Given the API is running                # specs/steps/company_steps.py:7
-    And I am logged in                      # specs/steps/system_steps.py:61
-    Given a company exists                  # None
-    And I am logged in as "viewer"          # None
-    When I view the company details         # None
-    Then I do not see a "Delete" button     # None
+    And I am logged in                      # specs/steps/system_steps.py:52
+    Given a company exists                  # specs/steps/auth_steps.py:25
+    And I am logged in as "viewer"          # specs/steps/system_steps.py:59
+    When I view the company details         # specs/steps/auth_steps.py:42
+    Then I do not see a "Delete" button     # specs/steps/auth_steps.py:64
+
+Feature: Cost Centers Management # specs/features/cost_centers.feature:1
+  As an analyst or admin
+  I want to manage cost centers
+  So that operational costs can be categorized
+  Feature: Cost Centers Management  # specs/features/cost_centers.feature:1
+
+  @analyst @admin
+  Scenario: Create cost center                   # specs/features/cost_centers.feature:10
+    Given I am logged in                         # specs/steps/system_steps.py:52
+    Given I am on the "New Cost Center" page     # specs/steps/auth_steps.py:72
+    When I fill in the cost center form:         # specs/steps/auth_steps.py:84
+      | code        | INF                      |
+      | name        | Infrastructure           |
+      | description | Server and hosting costs |
+    And I click "Save"                           # specs/steps/auth_steps.py:88
+    Then the cost center is created successfully # specs/steps/auth_steps.py:144
+    And I see the cost center in the list        # specs/steps/auth_steps.py:149
+    And the cost center is active                # specs/steps/auth_steps.py:155
+
+  @analyst @admin @viewer
+  Scenario: View cost centers list                      # specs/features/cost_centers.feature:22
+    Given I am logged in                                # specs/steps/system_steps.py:52
+    Given cost centers exist in the system              # specs/steps/auth_steps.py:18
+    When I navigate to "Cost Centers" page              # specs/steps/auth_steps.py:80
+    Then I see a list of all active cost centers        # specs/steps/auth_steps.py:160
+    And each cost center shows: code, name, description # specs/steps/auth_steps.py:164
+
+  @analyst @admin
+  Scenario: Update cost center                          # specs/features/cost_centers.feature:29
+    Given I am logged in                                # specs/steps/system_steps.py:52
+    Given a cost center exists with code "INF"          # specs/steps/auth_steps.py:68
+    And I am on the cost center detail page             # specs/steps/auth_steps.py:76
+    When I click "Edit"                                 # specs/steps/auth_steps.py:118
+    And I change the name to "Infrastructure & Hosting" # specs/steps/auth_steps.py:122
+    And I click "Save"                                  # specs/steps/auth_steps.py:88
+    Then the cost center is updated                     # specs/steps/auth_steps.py:168
+    And the name shows "Infrastructure & Hosting"       # specs/steps/auth_steps.py:173
+
+  @admin
+  Scenario: Deactivate cost center              # specs/features/cost_centers.feature:39
+    Given I am logged in                        # specs/steps/system_steps.py:52
+    Given a cost center exists with code "INF"  # specs/steps/auth_steps.py:68
+    When I click "Deactivate"                   # specs/steps/auth_steps.py:126
+    And I confirm the deactivation              # specs/steps/auth_steps.py:130
+    Then the cost center is marked as inactive  # specs/steps/auth_steps.py:177
+      Traceback (most recent call last):
+        File "/opt/anaconda3/lib/python3.12/site-packages/behave/model.py", line 1991, in run
+          match.run(runner.context)
+        File "/opt/anaconda3/lib/python3.12/site-packages/behave/matchers.py", line 105, in run
+          self.func(context, *args, **kwargs)
+        File "specs/steps/auth_steps.py", line 179, in step_cost_center_inactive
+          is_active = context.last_response.get("is_active", False)
+                      ^^^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/behave/runner.py", line 430, in __getattr__
+          raise AttributeError(msg)
+      AttributeError: 'Context' object has no attribute 'last_response'
+
+    And it no longer appears in the active list # None
+
+  @viewer
+  Scenario: Viewer cannot create cost centers      # specs/features/cost_centers.feature:47
+    Given I am logged in                           # specs/steps/system_steps.py:52
+    Given I am logged in as "viewer"               # specs/steps/system_steps.py:59
+    When I navigate to the cost centers page       # specs/steps/auth_steps.py:14
+    Then I do not see a "New Cost Center" button   # specs/steps/auth_steps.py:222
+    And I cannot access the creation page directly # specs/steps/auth_steps.py:226
 
 Feature: Monthly Cost Records # specs/features/monthly_records.feature:1
   As an analyst
@@ -130,164 +255,219 @@ Feature: Monthly Cost Records # specs/features/monthly_records.feature:1
   @analyst @admin
   Scenario: Add monthly record for a product        # specs/features/monthly_records.feature:11
     Given the API is running                        # specs/steps/company_steps.py:7
-    And I am logged in                              # specs/steps/system_steps.py:61
-    Given company "EMP001" exists                   # specs/steps/monthly_steps.py:8
-    When I add a monthly record:                    # specs/steps/monthly_steps.py:172
+    And I am logged in                              # specs/steps/system_steps.py:52
+    Given company "EMP001" exists                   # specs/steps/monthly_steps.py:36
+    When I add a monthly record:                    # specs/steps/monthly_steps.py:243
       | field          | value      |
       | mes_ano        | 2026-01-01 |
       | produto        | Gympass    |
       | elegiveis      | 100        |
       | vidas_cobradas | 95         |
       | valor_final    | 15000.00   |
-    And I save the monthly record                   # specs/steps/monthly_steps.py:208
-    Then the monthly record is created successfully # specs/steps/monthly_steps.py:351
-      ASSERT FAILED: Expected 200/201, got 500: {}
-
-    And the monthly API returns status 201          # None
+    And I save the monthly record                   # specs/steps/monthly_steps.py:291
+    Then the monthly record is created successfully # specs/steps/monthly_steps.py:437
+    And the monthly API returns status 201          # specs/steps/monthly_steps.py:443
 
   @analyst @admin
   Scenario: Duplicate month detection                                                        # specs/features/monthly_records.feature:25
     Given the API is running                                                                 # specs/steps/company_steps.py:7
-    And I am logged in                                                                       # specs/steps/system_steps.py:61
-    Given company "EMP-DUP" exists                                                           # specs/steps/monthly_steps.py:8
-    And a monthly record for "EMP-DUP" + "Gympass" + "2026-01-01"                            # specs/steps/monthly_steps.py:28
-    When I try to add another record for the same company + product + month                  # specs/steps/monthly_steps.py:196
-    And I save the monthly record                                                            # specs/steps/monthly_steps.py:208
-    Then I see a monthly validation error "Record already exists for this month and product" # specs/steps/monthly_steps.py:369
-      ASSERT FAILED: Expected 'Record already exists for this month and product' in response, got: {}
-
+    And I am logged in                                                                       # specs/steps/system_steps.py:52
+    Given company "EMP-DUP" exists                                                           # specs/steps/monthly_steps.py:36
+    And a monthly record for "EMP-DUP" + "Gympass" + "2026-01-01"                            # specs/steps/monthly_steps.py:67
+    When I try to add another record for the same company + product + month                  # specs/steps/monthly_steps.py:277
+    And I save the monthly record                                                            # specs/steps/monthly_steps.py:291
+    Then I see a monthly validation error "Record already exists for this month and product" # specs/steps/monthly_steps.py:455
 
   @analyst @admin
   Scenario: Add multiple products for same month  # specs/features/monthly_records.feature:33
     Given the API is running                      # specs/steps/company_steps.py:7
-    And I am logged in                            # specs/steps/system_steps.py:61
-    Given company "EMP001" exists                 # specs/steps/monthly_steps.py:8
-    When I add a monthly record:                  # specs/steps/monthly_steps.py:172
+    And I am logged in                            # specs/steps/system_steps.py:52
+    Given company "EMP001" exists                 # specs/steps/monthly_steps.py:36
+    When I add a monthly record:                  # specs/steps/monthly_steps.py:243
       | field       | value      |
       | mes_ano     | 2026-02-01 |
       | produto     | Gympass    |
       | valor_final | 15000.00   |
-    And I save the monthly record                 # specs/steps/monthly_steps.py:208
-    And I add another monthly record:             # specs/steps/monthly_steps.py:186
+    And I save the monthly record                 # specs/steps/monthly_steps.py:291
+    And I add another monthly record:             # specs/steps/monthly_steps.py:262
       | field       | value      |
       | mes_ano     | 2026-02-01 |
       | produto     | Wiipo      |
       | valor_final | 3000.00    |
-    And I save the monthly record                 # specs/steps/monthly_steps.py:208
-    Then both records are created                 # specs/steps/monthly_steps.py:445
-      ASSERT FAILED: Expected 200/201, got 500
+    And I save the monthly record                 # specs/steps/monthly_steps.py:291
+    Then both records are created                 # specs/steps/monthly_steps.py:531
+      ASSERT FAILED: Expected 200/201, got 400
 
     And I can retrieve both for the same month    # None
 
   @analyst @admin @viewer
   Scenario: View monthly records for a company           # specs/features/monthly_records.feature:51
     Given the API is running                             # specs/steps/company_steps.py:7
-    And I am logged in                                   # specs/steps/system_steps.py:61
-    Given company "EMP001" has monthly records           # specs/steps/monthly_steps.py:110
-      Traceback (most recent call last):
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/model.py", line 1991, in run
-          match.run(runner.context)
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/matchers.py", line 105, in run
-          self.func(context, *args, **kwargs)
-        File "specs/steps/monthly_steps.py", line 113, in step_company_has_monthly
-          if context.monthly_company_uuid:
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/runner.py", line 430, in __getattr__
-          raise AttributeError(msg)
-      AttributeError: 'Context' object has no attribute 'monthly_company_uuid'
+    And I am logged in                                   # specs/steps/system_steps.py:52
+    Given company "EMP001" has monthly records           # specs/steps/monthly_steps.py:181
+    When I retrieve monthly records for company "EMP001" # specs/steps/monthly_steps.py:342
+    Then I see all monthly records for that company      # specs/steps/monthly_steps.py:473
+    And each record shows: mes_ano, produto, valor_final # specs/steps/monthly_steps.py:479
+      ASSERT FAILED: Field 'produto' missing from monthly record
 
-    When I retrieve monthly records for company "EMP001" # None
-    Then I see all monthly records for that company      # None
-    And each record shows: mes_ano, produto, valor_final # None
 
   @analyst @admin @viewer
   Scenario: View records filtered by month                        # specs/features/monthly_records.feature:58
     Given the API is running                                      # specs/steps/company_steps.py:7
-    And I am logged in                                            # specs/steps/system_steps.py:61
-    Given monthly records exist for "2026-01-01" and "2026-02-01" # specs/steps/monthly_steps.py:126
-    When I filter records by month "2026-01-01"                   # specs/steps/monthly_steps.py:282
-    Then I see only records from January 2026                     # specs/steps/monthly_steps.py:401
-    And I do not see February records                             # specs/steps/monthly_steps.py:408
+    And I am logged in                                            # specs/steps/system_steps.py:52
+    Given monthly records exist for "2026-01-01" and "2026-02-01" # specs/steps/monthly_steps.py:197
+    When I filter records by month "2026-01-01"                   # specs/steps/monthly_steps.py:365
+    Then I see only records from January 2026                     # specs/steps/monthly_steps.py:487
+    And I do not see February records                             # specs/steps/monthly_steps.py:494
 
   @analyst @admin @viewer
   Scenario: View all records across companies          # specs/features/monthly_records.feature:65
     Given the API is running                           # specs/steps/company_steps.py:7
-    And I am logged in                                 # specs/steps/system_steps.py:61
-    Given monthly records exist for multiple companies # specs/steps/monthly_steps.py:153
-    When I retrieve all monthly records                # specs/steps/monthly_steps.py:294
-    Then I see records from all companies              # specs/steps/monthly_steps.py:414
-      ASSERT FAILED: Expected records
-
-    And I can filter by company_id                     # None
+    And I am logged in                                 # specs/steps/system_steps.py:52
+    Given monthly records exist for multiple companies # specs/steps/monthly_steps.py:224
+    When I retrieve all monthly records                # specs/steps/monthly_steps.py:377
+    Then I see records from all companies              # specs/steps/monthly_steps.py:500
+    And I can filter by company_id                     # specs/steps/monthly_steps.py:506
 
   @analyst @admin
   Scenario: Update a monthly record                                       # specs/features/monthly_records.feature:72
     Given the API is running                                              # specs/steps/company_steps.py:7
-    And I am logged in                                                    # specs/steps/system_steps.py:61
-    Given a monthly record exists for "EMP001" + "Gympass" + "2026-01-01" # specs/steps/monthly_steps.py:71
-      Traceback (most recent call last):
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/model.py", line 1991, in run
-          match.run(runner.context)
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/matchers.py", line 105, in run
-          self.func(context, *args, **kwargs)
-        File "specs/steps/monthly_steps.py", line 97, in step_monthly_record_exists
-          if context.monthly_company_uuid:
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/runner.py", line 430, in __getattr__
-          raise AttributeError(msg)
-      AttributeError: 'Context' object has no attribute 'monthly_company_uuid'
-
-    When I update the record:                                             # None
+    And I am logged in                                                    # specs/steps/system_steps.py:52
+    Given a monthly record exists for "EMP001" + "Gympass" + "2026-01-01" # specs/steps/monthly_steps.py:110
+    When I update the record:                                             # specs/steps/monthly_steps.py:314
       | field       | value    |
       | valor_final | 16000.00 |
-    And I save the update                                                 # None
-    Then the monthly record is updated                                    # None
-    And the valor_final shows 16000.00                                    # None
+    And I save the update                                                 # specs/steps/monthly_steps.py:84
+    Then the monthly record is updated                                    # specs/steps/monthly_steps.py:449
+    And the valor_final shows 16000.00                                    # specs/steps/monthly_steps.py:465
 
   @admin
   Scenario: Delete a monthly record                                       # specs/features/monthly_records.feature:82
     Given the API is running                                              # specs/steps/company_steps.py:7
-    And I am logged in                                                    # specs/steps/system_steps.py:61
-    Given a monthly record exists for "EMP001" + "Gympass" + "2026-01-01" # specs/steps/monthly_steps.py:71
-      Traceback (most recent call last):
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/model.py", line 1991, in run
-          match.run(runner.context)
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/matchers.py", line 105, in run
-          self.func(context, *args, **kwargs)
-        File "specs/steps/monthly_steps.py", line 97, in step_monthly_record_exists
-          if context.monthly_company_uuid:
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-        File "/opt/anaconda3/lib/python3.12/site-packages/behave/runner.py", line 430, in __getattr__
-          raise AttributeError(msg)
-      AttributeError: 'Context' object has no attribute 'monthly_company_uuid'
-
-    When I delete the monthly record                                      # None
-    Then the record is permanently removed                                # None
-    And I get 404 when retrieving it                                      # None
+    And I am logged in                                                    # specs/steps/system_steps.py:52
+    Given a monthly record exists for "EMP001" + "Gympass" + "2026-01-01" # specs/steps/monthly_steps.py:110
+    When I delete the monthly record                                      # specs/steps/monthly_steps.py:324
+    Then the record is permanently removed                                # specs/steps/monthly_steps.py:511
+    And I get 404 when retrieving it                                      # specs/steps/monthly_steps.py:517
 
   @viewer
   Scenario: Viewer cannot create monthly records  # specs/features/monthly_records.feature:89
     Given the API is running                      # specs/steps/company_steps.py:7
-    And I am logged in                            # specs/steps/system_steps.py:61
-    Given I am logged in as "viewer"              # specs/steps/system_steps.py:68
-    When I try to create a monthly record         # specs/steps/monthly_steps.py:304
-    Then the monthly operation is denied          # specs/steps/monthly_steps.py:439
+    And I am logged in                            # specs/steps/system_steps.py:52
+    Given I am logged in as "viewer"              # specs/steps/system_steps.py:59
+    When I try to create a monthly record         # specs/steps/monthly_steps.py:387
+    Then the monthly operation is denied          # specs/steps/monthly_steps.py:525
 
   @viewer
   Scenario: Viewer cannot edit monthly records  # specs/features/monthly_records.feature:95
     Given the API is running                    # specs/steps/company_steps.py:7
-    And I am logged in                          # specs/steps/system_steps.py:61
-    Given a monthly record exists               # None
-    And I am logged in as "viewer"              # None
-    When I try to update the monthly record     # None
-    Then the monthly operation is denied        # None
+    And I am logged in                          # specs/steps/system_steps.py:52
+    Given a monthly record exists               # specs/steps/monthly_steps.py:8
+    And I am logged in as "viewer"              # specs/steps/system_steps.py:59
+    When I try to update the monthly record     # specs/steps/monthly_steps.py:410
+    Then the monthly operation is denied        # specs/steps/monthly_steps.py:525
+      ASSERT FAILED: Expected 4xx/5xx, got 200
+
 
   @viewer
   Scenario: Viewer cannot delete monthly records  # specs/features/monthly_records.feature:102
     Given the API is running                      # specs/steps/company_steps.py:7
-    And I am logged in                            # specs/steps/system_steps.py:61
-    Given a monthly record exists                 # None
-    And I am logged in as "viewer"                # None
-    When I try to delete the monthly record       # None
-    Then the monthly operation is denied          # None
+    And I am logged in                            # specs/steps/system_steps.py:52
+    Given a monthly record exists                 # specs/steps/monthly_steps.py:8
+    And I am logged in as "viewer"                # specs/steps/system_steps.py:59
+    When I try to delete the monthly record       # specs/steps/monthly_steps.py:425
+    Then the monthly operation is denied          # specs/steps/monthly_steps.py:525
+      ASSERT FAILED: Expected 4xx/5xx, got 204
+
+
+Feature: Data Model # specs/system/data_model.feature:1
+  As a database administrator
+  I want a well-defined data model
+  So that data integrity is maintained
+  Scenario: Core tables exist          # specs/system/data_model.feature:6
+    Given the database is initialized  # specs/steps/system_steps.py:86
+    Then table "profiles" exists       # specs/steps/system_steps.py:313
+    And table "companies" exists       # specs/steps/system_steps.py:313
+    And table "monthly_records" exists # specs/steps/system_steps.py:313
+    And table "audit_logs" exists      # specs/steps/system_steps.py:313
+
+  Scenario: Company data has proper constraints  # specs/system/data_model.feature:13
+    Given a company is created                   # specs/steps/system_steps.py:113
+    Then the cnpj field is unique                # specs/steps/system_steps.py:318
+    And the company_id field is unique           # specs/steps/system_steps.py:331
+    And the is_active flag defaults to true      # specs/steps/system_steps.py:343
+
+  Scenario: Monthly records have unique constraint                   # specs/system/data_model.feature:19
+    Given a monthly record is created                                # specs/steps/system_steps.py:117
+    Then the combination of company_id + produto + mes_ano is unique # specs/steps/system_steps.py:356
+    And each record is linked to a valid company                     # specs/steps/system_steps.py:368
+    And financial fields use DECIMAL type                            # specs/steps/system_steps.py:381
+
+  Scenario: Financial data uses proper types  # specs/system/data_model.feature:25
+    Given a monthly record is created         # specs/steps/system_steps.py:117
+    Then valor_final uses DECIMAL type        # specs/steps/system_steps.py:142
+    And valor_elegivel uses DECIMAL type      # specs/steps/system_steps.py:154
+    And rs_carregado uses DECIMAL type        # specs/steps/system_steps.py:166
+    And amounts cannot be negative            # specs/steps/system_steps.py:398
+
+  Scenario: Referential integrity is enforced          # specs/system/data_model.feature:32
+    Given a company is referenced by monthly records   # specs/steps/system_steps.py:121
+    When the company is deleted                        # specs/steps/system_steps.py:125
+    Then all its monthly records are deleted (CASCADE) # specs/steps/system_steps.py:412
+    And no orphaned records exist                      # specs/steps/system_steps.py:129
+
+Feature: Security Model # specs/system/security_model.feature:1
+  As a system architect
+  I want robust security policies
+  So that data is protected at all levels
+  Scenario: RLS policies enforce role hierarchy           # specs/system/security_model.feature:6
+    Given the role hierarchy is: admin > analyst > viewer # specs/steps/system_steps.py:78
+    When a "viewer" attempts to create a cost             # specs/steps/system_steps.py:200
+    Then the operation is denied                          # specs/steps/system_steps.py:285
+    When an "analyst" attempts to delete a cost           # specs/steps/system_steps.py:207
+    Then the operation is denied                          # specs/steps/system_steps.py:285
+    When an "admin" performs any operation                # specs/steps/system_steps.py:213
+    Then the operation is allowed                         # specs/steps/system_steps.py:289
+
+  Scenario: Authentication is required for all operations  # specs/system/security_model.feature:15
+    Given an unauthenticated user                          # specs/steps/system_steps.py:70
+    When they attempt to access any protected resource     # specs/steps/system_steps.py:218
+    Then they receive a 401 Unauthorized response          # specs/steps/system_steps.py:293
+
+  Scenario: Audit trail captures all changes          # specs/system/security_model.feature:20
+    Given a cost is created, updated, or deleted      # specs/steps/system_steps.py:182
+    Then an audit log entry is created                # specs/steps/system_steps.py:297
+    And the log contains the old and new values       # specs/steps/system_steps.py:303
+    And the log contains the user who made the change # specs/steps/system_steps.py:308
+
+Feature: System Overview # specs/system/system_overview.feature:1
+  As a controller team
+  I want a monthly cost tracking system
+  So that I can manage company benefits costs (Gympass, Wiipo, Flex) month by month
+  Scenario: System provides company management  # specs/system/system_overview.feature:6
+    Given the system is deployed                # specs/steps/system_steps.py:28
+    Then users can register companies           # specs/steps/system_steps.py:224
+    And users can view company details          # specs/steps/system_steps.py:229
+    And users can deactivate companies          # specs/steps/system_steps.py:234
+
+  Scenario: System provides monthly cost tracking         # specs/system/system_overview.feature:12
+    Given the system is deployed                          # specs/steps/system_steps.py:28
+    Then users can enter monthly cost records per product # specs/steps/system_steps.py:239
+    And users can view costs month by month               # specs/steps/system_steps.py:244
+    And users can filter by company and month             # specs/steps/system_steps.py:249
+    And each month shows all products for that company    # specs/steps/system_steps.py:254
+
+  Scenario: System enforces role-based access control       # specs/system/system_overview.feature:19
+    Given a user is authenticated                           # specs/steps/system_steps.py:65
+    When the user has role "viewer"                         # specs/steps/system_steps.py:188
+    Then they can only view data                            # specs/steps/system_steps.py:192
+    When the user has role "analyst"                        # specs/steps/system_steps.py:188
+    Then they can create and update data                    # specs/steps/system_steps.py:196
+    When the user has role "admin"                          # specs/steps/system_steps.py:188
+    Then they can perform all operations including deletion # specs/steps/system_steps.py:273
+
+  Scenario: System maintains data security via RLS          # specs/system/system_overview.feature:28
+    Given the database has Row Level Security enabled       # specs/steps/system_steps.py:74
+    Then users can only access data according to their role # specs/steps/system_steps.py:277
+    And all data access is enforced at database level       # specs/steps/system_steps.py:281
 
