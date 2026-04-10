@@ -130,7 +130,7 @@ export default function CompanyDetail() {
                   <Field label="Razão Social" value={company.razao_social} />
                   <Field label="Cliente" value={company.cliente} />
                   <Field label="E-mails para envio" value={company.email_envio} multiEmail />
-                  <Field label="Início Cobrança" value={company.inicio_cobranca ? new Date(company.inicio_cobranca).toLocaleDateString('pt-BR') : null} />
+                  <Field label="Início Cobrança" value={company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10).split('-').reverse().join('/') : null} />
                   <Field label="Dia de Vencimento" value={company.vencimento ? `Dia ${company.vencimento}` : null} />
                 </div>
 
@@ -180,7 +180,7 @@ function InputEdit({ label, value, onChange, type = 'text', error }: {
 
 function Field({ label, value, multiEmail }: { label: string; value: string | null | undefined; multiEmail?: boolean }) {
   if (multiEmail && value) {
-    const emails = value.split(',').map(e => e.trim()).filter(Boolean);
+    const emails = value.split(/[,;]/).map(e => e.trim()).filter(Boolean);
     return (
       <div>
         <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{label}</label>
@@ -205,7 +205,7 @@ function Field({ label, value, multiEmail }: { label: string; value: string | nu
 function InputEditMultiEmail({ label, value, onChange, error }: {
   label: string; value: string; onChange: (v: string) => void; error?: string;
 }) {
-  const emails = value ? value.split(',').map(e => e.trim()).filter(Boolean) : [];
+  const emails = value ? value.split(/[,;]/).map(e => e.trim()).filter(Boolean) : [];
   const [input, setInput] = useState('');
 
   const addEmail = () => {

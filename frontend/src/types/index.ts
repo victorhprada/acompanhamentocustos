@@ -18,7 +18,6 @@ export interface MonthlyRecord {
   id: string;
   company_id: string;
   mes_ano: string;
-  produto: string;
   elegiveis_contrato?: number;
   elegiveis?: number;
   valor_elegivel?: number;

@@ -49,5 +49,34 @@ export const createMonthlyRecord = (data: Partial<MonthlyRecord>, propagate = tr
 export const updateMonthlyRecord = (id: string, data: Partial<MonthlyRecord>, propagate = true) =>
   fetchApi<MonthlyRecord>(`/monthly/${id}?propagate=${propagate}`, { method: 'PUT', body: JSON.stringify(data) });
 
-export const deleteMonthlyRecord = (id: string) =>
-  fetchApi<void>(`/monthly/${id}`, { method: 'DELETE' });
+export const deleteMonthlyRecord = (id: string, propagate = true) =>
+  fetchApi<void>(`/monthly/${id}?propagate=${propagate}`, { method: 'DELETE' });
+
+// Import
+export const uploadImportFile = async (file: File) => {
+  const form = new FormData();
+  form.append('file', file);
+  const response = await fetch(`${API_BASE}/import/upload`, { method: 'POST', body: form });
+  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  return response.json() as Promise<{
+    file_path: string;
+    sheets: Array<{
+      name: string;
+      mes_ano: string | null;
+      columns: Array<{ index: number; label: string }>;
+      preview: string[][];
+    }>;
+  }>;
+};
+
+export const processImport = (body: {
+  file_path: string;
+  mapping: Record<string, string>;
+  sheets: Array<{ name: string; mes_ano: string; include: boolean }>;
+  propagate?: boolean;
+  propagate_mes_ano?: string;
+}) =>
+  fetchApi<{ companies_created: number; companies_updated: number; records_created: number; records_updated: number; errors: string[] }>(
+    '/import/process',
+    { method: 'POST', body: JSON.stringify(body) },
+  );

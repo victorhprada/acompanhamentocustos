@@ -5,8 +5,7 @@ from datetime import date, datetime
 
 class MonthlyRecordBase(BaseModel):
     mes_ano: date
-    produto: str = Field(..., min_length=1, max_length=100)
-    
+
     # Elegíveis
     elegiveis_contrato: Optional[float] = None
     elegiveis: Optional[float] = None
@@ -25,11 +24,11 @@ class MonthlyRecordBase(BaseModel):
     rs_carregado: Optional[float] = None
     media_cartao_realizado: Optional[float] = None
     media_contratada: Optional[float] = None
-    
+
     # Wiipo
     valor_elegivel_wiipo: Optional[float] = None
     faturamento_wiipo: Optional[float] = None
-    
+
     # Financeiro
     mensal_x_rentabilidade: Optional[str] = Field(None, max_length=100)
     custo_por_cliente: Optional[float] = None
@@ -42,7 +41,6 @@ class MonthlyRecordCreate(MonthlyRecordBase):
 
 
 class MonthlyRecordUpdate(BaseModel):
-    produto: Optional[str] = Field(None, max_length=100)
     elegiveis_contrato: Optional[float] = None
     elegiveis: Optional[float] = None
     valor_elegivel: Optional[float] = None

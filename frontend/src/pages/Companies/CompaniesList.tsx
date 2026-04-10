@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { getCompanies, createCompany, updateCompany, deactivateCompany, activateCompany } from '../../services/api';
+import ImportModal from '../../components/ImportModal';
 
 const ERROR_MESSAGES: Record<string, string> = {
   'cnpj': 'CNPJ',
@@ -68,6 +69,7 @@ function parseApiErrors(err: any): Record<string, string> {
 export default function CompaniesList() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showInactive, setShowInactive] = useState(false);
@@ -206,17 +208,22 @@ export default function CompaniesList() {
               />
               Mostrar inativas
             </label>
-            <span className="text-xs text-gray-400">
-              {companies?.length || 0} empresa(s)
-            </span>
           </div>
         </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          {showForm ? 'Cancelar' : '+ Nova Empresa'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowImport(true)}
+            className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition text-sm"
+          >
+            Importar planilha
+          </button>
+          <button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            {showForm ? 'Cancelar' : '+ Nova Empresa'}
+          </button>
+        </div>
       </div>
 
       {showForm && (
@@ -294,7 +301,7 @@ export default function CompaniesList() {
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">{company.cnpj}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{company.cliente || '-'}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{company.inicio_cobranca ? new Date(company.inicio_cobranca).toLocaleDateString('pt-BR') : '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10).split('-').reverse().join('/') : '-'}</td>
                 <td className="px-4 py-3 text-sm">
                   <div className="flex gap-2">
                     <button
@@ -372,6 +379,13 @@ export default function CompaniesList() {
           </div>
         </div>
       )}
+
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['companies'] })}
+        />
+      )}
     </div>
   );
 }
@@ -379,7 +393,7 @@ export default function CompaniesList() {
 function MultiEmailInput({ value, onChange, error }: {
   value: string; onChange: (v: string) => void; error?: string;
 }) {
-  const emails = value ? value.split(',').map(e => e.trim()).filter(Boolean) : [];
+  const emails = value ? value.split(/[,;]/).map(e => e.trim()).filter(Boolean) : [];
   const [input, setInput] = useState('');
 
   const addEmail = () => {

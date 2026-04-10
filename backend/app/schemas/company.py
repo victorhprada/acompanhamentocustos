@@ -6,7 +6,7 @@ from datetime import date, datetime
 class CompanyBase(BaseModel):
     company_id: str = Field(..., min_length=1, max_length=50)
     empresa: str = Field(..., min_length=1, max_length=255)
-    cnpj: str = Field(..., min_length=14, max_length=18)
+    cnpj: str = Field(..., max_length=18)
     razao_social: Optional[str] = Field(None, max_length=255)
     cliente: Optional[str] = Field(None, max_length=255)
     email_envio: Optional[str] = Field(None, max_length=255)
