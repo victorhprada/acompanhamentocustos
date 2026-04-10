@@ -10,8 +10,8 @@ Feature: Cost Centers Management
   Scenario: Create cost center
     Given I am on the "New Cost Center" page
     When I fill in the cost center form:
-      | code  | INF           |
-      | name  | Infrastructure |
+      | code        | INF              |
+      | name        | Infrastructure   |
       | description | Server and hosting costs |
     And I click "Save"
     Then the cost center is created successfully

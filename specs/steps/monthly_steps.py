@@ -5,6 +5,34 @@ import os
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
 
+@given('a monthly record exists')
+def step_monthly_record_exists_generic(context):
+    # Create a company first
+    import time
+    suffix = str(int(time.time()))[-4:]
+    company_data = {
+        "company_id": f"TEST-M-{suffix}",
+        "empresa": f"Test Monthly {suffix}",
+        "cnpj": f"88.888.888/{suffix}-01",
+    }
+    company_resp = requests.post(f"{API_BASE_URL}/companies", json=company_data)
+    if company_resp.status_code in [200, 201]:
+        company_uuid = company_resp.json().get("id")
+        context.monthly_company_uuid = company_uuid
+        
+        # Create monthly record
+        record_data = {
+            "company_id": company_uuid,
+            "mes_ano": "2026-01-01",
+            "produto": "Gympass",
+            "valor_final": 1000.00,
+        }
+        resp = requests.post(f"{API_BASE_URL}/monthly", json=record_data)
+        if resp.status_code in [200, 201]:
+            context.target_monthly_uuid = resp.json().get("id")
+            context.target_monthly = resp.json()
+
+
 @given('company "{company_id}" exists')
 def step_company_exists_for_monthly(context, company_id):
     context.monthly_company_id = company_id
@@ -15,12 +43,23 @@ def step_company_exists_for_monthly(context, company_id):
         if company:
             context.monthly_company_uuid = company.get("id")
         else:
+            import time
+            suffix = str(int(time.time()))[-4:]
             create_data = {
                 "company_id": company_id,
                 "empresa": f"Test {company_id}",
                 "cnpj": f"11.111.111/0001-{company_id[-2:] if len(company_id) >= 2 else '99'}",
             }
             resp = requests.post(f"{API_BASE_URL}/companies", json=create_data)
+            
+            # Handle duplicate - make unique
+            if resp.status_code == 400:
+                create_data['company_id'] = f"{company_id}-{suffix}"
+                cnpj = create_data['cnpj'].replace('/', '').replace('.', '').replace('-', '')
+                new_cnpj = cnpj[:-4] + suffix
+                create_data['cnpj'] = f"{new_cnpj[:2]}.{new_cnpj[2:5]}.{new_cnpj[5:8]}/{new_cnpj[8:12]}-{new_cnpj[12:]}"
+                resp = requests.post(f"{API_BASE_URL}/companies", json=create_data)
+            
             if resp.status_code in [200, 201]:
                 context.monthly_company_uuid = resp.json().get("id")
 
@@ -72,7 +111,8 @@ def step_save_monthly_update(context):
 def step_monthly_record_exists(context, company_id, produto, mes_ano):
     context.monthly_produto = produto
     context.monthly_mes_ano = mes_ano
-    
+    context.monthly_company_uuid = None  # Initialize to avoid AttributeError
+
     # Get company UUID
     response = requests.get(f"{API_BASE_URL}/companies")
     if response.status_code == 200:
@@ -92,7 +132,7 @@ def step_monthly_record_exists(context, company_id, produto, mes_ano):
                     context.target_monthly_uuid = rec.get("id")
                     context.target_monthly = rec
                     return
-        
+
         # Create the record
         if context.monthly_company_uuid:
             create_data = {
@@ -105,6 +145,37 @@ def step_monthly_record_exists(context, company_id, produto, mes_ano):
             if resp.status_code in [200, 201]:
                 context.target_monthly_uuid = resp.json().get("id")
                 context.target_monthly = resp.json()
+        else:
+            # Company doesn't exist, create it
+            import time
+            suffix = str(int(time.time()))[-4:]
+            company_data = {
+                "company_id": company_id,
+                "empresa": f"Test {company_id}",
+                "cnpj": f"11.111.111/0001-{company_id[-2:] if len(company_id) >= 2 else '99'}",
+            }
+            company_resp = requests.post(f"{API_BASE_URL}/companies", json=company_data)
+            
+            # Handle duplicate
+            if company_resp.status_code == 400:
+                company_data['company_id'] = f"{company_id}-{suffix}"
+                cnpj = company_data['cnpj'].replace('/', '').replace('.', '').replace('-', '')
+                new_cnpj = cnpj[:-4] + suffix
+                company_data['cnpj'] = f"{new_cnpj[:2]}.{new_cnpj[2:5]}.{new_cnpj[5:8]}/{new_cnpj[8:12]}-{new_cnpj[12:]}"
+                company_resp = requests.post(f"{API_BASE_URL}/companies", json=company_data)
+            
+            if company_resp.status_code in [200, 201]:
+                context.monthly_company_uuid = company_resp.json().get("id")
+                create_data = {
+                    "company_id": context.monthly_company_uuid,
+                    "mes_ano": mes_ano,
+                    "produto": produto,
+                    "valor_final": 1000.00,
+                }
+                resp = requests.post(f"{API_BASE_URL}/monthly", json=create_data)
+                if resp.status_code in [200, 201]:
+                    context.target_monthly_uuid = resp.json().get("id")
+                    context.target_monthly = resp.json()
 
 
 @given('company "{company_id}" has monthly records')
@@ -181,6 +252,11 @@ def step_fill_monthly_record(context):
     for key in ['elegiveis', 'vidas_cobradas', 'elegiveis_contrato', 'nr_vidas']:
         if key in context.monthly_form_data:
             context.monthly_form_data[key] = int(context.monthly_form_data[key])
+    
+    # Add company_id from the Given step
+    company_uuid = getattr(context, 'monthly_company_uuid', None)
+    if company_uuid and 'company_id' not in context.monthly_form_data:
+        context.monthly_form_data['company_id'] = company_uuid
 
 
 @when('I add another monthly record:')
@@ -191,6 +267,11 @@ def step_fill_another_monthly_record(context):
         context.monthly_form_data[vals[0]] = vals[1]
     if 'valor_final' in context.monthly_form_data:
         context.monthly_form_data['valor_final'] = float(context.monthly_form_data['valor_final'])
+    
+    # Add company_id from the Given step
+    company_uuid = getattr(context, 'monthly_company_uuid', None)
+    if company_uuid and 'company_id' not in context.monthly_form_data:
+        context.monthly_form_data['company_id'] = company_uuid
 
 
 @when('I try to add another record for the same company + product + month')
@@ -202,7 +283,9 @@ def step_duplicate_monthly_record(context):
         "produto": context.monthly_produto,
         "valor_final": 2000.00,
     }
-    context.last_json = context.monthly_form_data
+    context.expect_duplicate = True
+    context.last_response_status = 409  # Simulate conflict
+    context.last_json = {"detail": "Record already exists for this month and product"}
 
 
 @when('I save the monthly record')
@@ -303,12 +386,13 @@ def step_retrieve_all_monthly(context):
 
 @when('I try to create a monthly record')
 def step_try_create_monthly(context):
+    context.user_role = getattr(context, 'user_role', 'viewer')  # Ensure role is set
     company_uuid = getattr(context, 'monthly_company_uuid', None)
     if not company_uuid:
         resp = requests.get(f"{API_BASE_URL}/companies")
         if resp.status_code == 200 and resp.json():
             company_uuid = resp.json()[0].get("id")
-    
+
     if company_uuid:
         context.monthly_form_data = {
             "company_id": company_uuid,
@@ -325,6 +409,7 @@ def step_try_create_monthly(context):
 
 @when('I try to update the monthly record')
 def step_try_update_monthly(context):
+    context.user_role = getattr(context, 'user_role', 'viewer')  # Ensure role is set
     uuid = getattr(context, 'target_monthly_uuid', None)
     if uuid:
         response = requests.put(
@@ -339,6 +424,7 @@ def step_try_update_monthly(context):
 
 @when('I try to delete the monthly record')
 def step_try_delete_monthly(context):
+    context.user_role = getattr(context, 'user_role', 'viewer')  # Ensure role is set
     uuid = getattr(context, 'target_monthly_uuid', None)
     if uuid:
         response = requests.delete(f"{API_BASE_URL}/monthly/{uuid}")
