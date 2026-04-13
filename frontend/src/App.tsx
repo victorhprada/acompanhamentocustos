@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import CompaniesList from './pages/Companies/CompaniesList';
 import CompanyDetail from './pages/Companies/CompanyDetail';
 import Login from './pages/login.tsx';
+import AuditLog from './pages/AuditLog';
 import { supabase } from './lib/supabase';
 
 const queryClient = new QueryClient();
@@ -159,6 +160,7 @@ function Sidebar() {
       <nav className="space-y-1 flex-1">
         <Link to="/" className={linkClass('/')}>📊 Dashboard</Link>
         <Link to="/companies" className={linkClass('/companies')}>🏢 Empresas</Link>
+        <Link to="/audit" className={linkClass('/audit')}>📋 Audit Log</Link>
       </nav>
       
       {/* User info and logout */}
@@ -224,6 +226,16 @@ function App() {
                 <AuthGuard>
                   <Layout>
                     <CompanyDetail />
+                  </Layout>
+                </AuthGuard>
+              }
+            />
+            <Route
+              path="/audit"
+              element={
+                <AuthGuard>
+                  <Layout>
+                    <AuditLog />
                   </Layout>
                 </AuthGuard>
               }

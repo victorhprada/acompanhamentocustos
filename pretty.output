@@ -1,482 +1,123 @@
-Feature: User Authentication # specs/features/authentication.feature:1
-  As a registered user
-  I want to authenticate securely
-  So that I can access the system according to my role
-  Feature: User Authentication  # specs/features/authentication.feature:1
+Feature: Audit Log # specs/features/audit_logs.feature:1
+  As an administrator
+  I want to view audit logs of all changes
+  So that I can track who changed what and when
+  Feature: Audit Log  # specs/features/audit_logs.feature:1
 
-  Scenario: User logs in successfully               # specs/features/authentication.feature:14
-    Given the Supabase authentication is configured # specs/steps/system_steps.py:37
-    And the following users exist:                  # specs/steps/system_steps.py:42
-      | email               | role    | full_name    |
-      | admin@empresa.com   | admin   | Admin User   |
-      | analyst@empresa.com | analyst | Analyst User |
-      | viewer@empresa.com  | viewer  | Viewer User  |
-    Given I am on the login page                    # specs/steps/auth_steps.py:7
-    When I enter valid credentials                  # specs/steps/auth_steps.py:95
-    Then I am redirected to the dashboard           # specs/steps/auth_steps.py:189
-    And my role is displayed in the header          # specs/steps/auth_steps.py:195
+  @admin
+  Scenario: View audit logs                              # specs/features/audit_logs.feature:11
+    Given the API is running                             # None
+    And I am logged in                                   # None
+    When I retrieve the audit logs                       # None
+    Then I see a list of audit log entries               # None
+    And each entry shows: table_name, action, changed_at # None
 
-  Scenario: User logs in with invalid credentials           # specs/features/authentication.feature:20
-    Given the Supabase authentication is configured         # specs/steps/system_steps.py:37
-    And the following users exist:                          # specs/steps/system_steps.py:42
-      | email               | role    | full_name    |
-      | admin@empresa.com   | admin   | Admin User   |
-      | analyst@empresa.com | analyst | Analyst User |
-      | viewer@empresa.com  | viewer  | Viewer User  |
-    Given I am on the login page                            # specs/steps/auth_steps.py:7
-    When I enter invalid credentials                        # specs/steps/auth_steps.py:104
-    Then I see an error message "Invalid email or password" # specs/steps/auth_steps.py:199
-    And I remain on the login page                          # specs/steps/auth_steps.py:205
+  @admin
+  Scenario: Filter audit logs by table                 # specs/features/audit_logs.feature:17
+    Given the API is running                           # None
+    And I am logged in                                 # None
+    Given audit logs exist for multiple tables         # None
+    When I filter audit logs by table "companies"      # None
+    Then I see only audit logs for the companies table # None
 
-  Scenario: User session expires                              # specs/features/authentication.feature:26
-    Given the Supabase authentication is configured           # specs/steps/system_steps.py:37
-    And the following users exist:                            # specs/steps/system_steps.py:42
-      | email               | role    | full_name    |
-      | admin@empresa.com   | admin   | Admin User   |
-      | analyst@empresa.com | analyst | Analyst User |
-      | viewer@empresa.com  | viewer  | Viewer User  |
-    Given I am logged in                                      # specs/steps/system_steps.py:52
-    When my session expires after inactivity                  # specs/steps/auth_steps.py:137
-    Then I am redirected to the login page                    # specs/steps/auth_steps.py:209
-    And I see a message "Session expired, please login again" # specs/steps/auth_steps.py:213
+  @admin
+  Scenario: Filter audit logs by action           # specs/features/audit_logs.feature:23
+    Given the API is running                      # None
+    And I am logged in                            # None
+    When I filter audit logs by action "INSERT"   # None
+    Then I see only audit logs with INSERT action # None
 
-  Scenario: User profile loads after login          # specs/features/authentication.feature:32
-    Given the Supabase authentication is configured # specs/steps/system_steps.py:37
-    And the following users exist:                  # specs/steps/system_steps.py:42
-      | email               | role    | full_name    |
-      | admin@empresa.com   | admin   | Admin User   |
-      | analyst@empresa.com | analyst | Analyst User |
-      | viewer@empresa.com  | viewer  | Viewer User  |
-    Given I am logged in as "analyst@empresa.com"   # specs/steps/system_steps.py:59
-    When I navigate to my profile                   # specs/steps/auth_steps.py:143
-    Then I see my full name, email, and role        # specs/steps/auth_steps.py:217
-    And I can update my profile information         # specs/steps/auth_steps.py:221
+  @admin
+  Scenario: View audit log details       # specs/features/audit_logs.feature:28
+    Given the API is running             # None
+    And I am logged in                   # None
+    Given an audit log entry exists      # None
+    When I retrieve the audit log detail # None
+    Then I see the old and new values    # None
 
-Feature: Companies Management # specs/features/companies.feature:1
-  As an analyst or admin
-  I want to manage company registry data
-  So that monthly cost records can be associated with companies
-  Feature: Companies Management  # specs/features/companies.feature:1
-
-  @analyst @admin
-  Scenario: Register a new company           # specs/features/companies.feature:11
+  @viewer
+  Scenario: Viewer cannot access audit logs  # specs/features/audit_logs.feature:34
     Given the API is running                 # specs/steps/company_steps.py:7
     And I am logged in                       # specs/steps/system_steps.py:52
-    Given I am on the "New Company" page     # specs/steps/company_steps.py:11
-    When I fill in the company form:         # specs/steps/company_steps.py:81
-      | field        | value              |
-      | company_id   | EMP001             |
-      | empresa      | Empresa Alpha      |
-      | cnpj         | 98.765.432/0001-10 |
-      | razao_social | Alpha Ltda         |
-      | cliente      | João Silva         |
-      | email_envio  | joao@alpha.com     |
-    And I save the company                   # specs/steps/company_steps.py:100
-    Then the company is created successfully # specs/steps/company_steps.py:257
-    And the API returns status 201           # specs/steps/company_steps.py:262
-    And I see the company in the list        # specs/steps/company_steps.py:267
+    Given I am logged in as "viewer"         # specs/steps/system_steps.py:59
+    When I try to retrieve audit logs        # specs/steps/audit_steps.py:116
+      Traceback (most recent call last):
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/connection.py", line 199, in _new_conn
+          sock = connection.create_connection(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/util/connection.py", line 85, in create_connection
+          raise err
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/util/connection.py", line 73, in create_connection
+          sock.connect(sa)
+      ConnectionRefusedError: [Errno 61] Connection refused
+      
+      The above exception was the direct cause of the following exception:
+      
+      Traceback (most recent call last):
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/connectionpool.py", line 789, in urlopen
+          response = self._make_request(
+                     ^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/connectionpool.py", line 495, in _make_request
+          conn.request(
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/connection.py", line 441, in request
+          self.endheaders()
+        File "/opt/anaconda3/lib/python3.12/http/client.py", line 1326, in endheaders
+          self._send_output(message_body, encode_chunked=encode_chunked)
+        File "/opt/anaconda3/lib/python3.12/http/client.py", line 1085, in _send_output
+          self.send(msg)
+        File "/opt/anaconda3/lib/python3.12/http/client.py", line 1029, in send
+          self.connect()
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/connection.py", line 279, in connect
+          self.sock = self._new_conn()
+                      ^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/connection.py", line 214, in _new_conn
+          raise NewConnectionError(
+      urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPConnection object at 0x10a442210>: Failed to establish a new connection: [Errno 61] Connection refused
+      
+      The above exception was the direct cause of the following exception:
+      
+      Traceback (most recent call last):
+        File "/opt/anaconda3/lib/python3.12/site-packages/requests/adapters.py", line 667, in send
+          resp = conn.urlopen(
+                 ^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/connectionpool.py", line 843, in urlopen
+          retries = retries.increment(
+                    ^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/urllib3/util/retry.py", line 519, in increment
+          raise MaxRetryError(_pool, url, reason) from reason  # type: ignore[arg-type]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+      urllib3.exceptions.MaxRetryError: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/v1/audit-logs (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x10a442210>: Failed to establish a new connection: [Errno 61] Connection refused'))
+      
+      During handling of the above exception, another exception occurred:
+      
+      Traceback (most recent call last):
+        File "/opt/anaconda3/lib/python3.12/site-packages/behave/model.py", line 1991, in run
+          match.run(runner.context)
+        File "/opt/anaconda3/lib/python3.12/site-packages/behave/matchers.py", line 105, in run
+          self.func(context, *args, **kwargs)
+        File "specs/steps/audit_steps.py", line 119, in step_try_retrieve_audit_logs
+          response = requests.get(f"{API_BASE_URL}/audit-logs")
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/requests/api.py", line 73, in get
+          return request("get", url, params=params, **kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/requests/api.py", line 59, in request
+          return session.request(method=method, url=url, **kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/requests/sessions.py", line 589, in request
+          resp = self.send(prep, **send_kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/requests/sessions.py", line 703, in send
+          r = adapter.send(request, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/opt/anaconda3/lib/python3.12/site-packages/requests/adapters.py", line 700, in send
+          raise ConnectionError(e, request=request)
+      requests.exceptions.ConnectionError: HTTPConnectionPool(host='localhost', port=8000): Max retries exceeded with url: /api/v1/audit-logs (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x10a442210>: Failed to establish a new connection: [Errno 61] Connection refused'))
 
-  @analyst @admin
-  Scenario: Company requires mandatory fields           # specs/features/companies.feature:27
-    Given the API is running                            # specs/steps/company_steps.py:7
-    And I am logged in                                  # specs/steps/system_steps.py:52
-    Given I am on the "New Company" page                # specs/steps/company_steps.py:11
-    When I leave "empresa" empty                        # specs/steps/company_steps.py:86
-    And I save the company                              # specs/steps/company_steps.py:100
-    Then I see a validation error "Empresa is required" # specs/steps/company_steps.py:276
-    And the company is not created                      # specs/steps/company_steps.py:287
-
-  @analyst @admin
-  Scenario: Company CNPJ must be unique                                 # specs/features/companies.feature:35
-    Given the API is running                                            # specs/steps/company_steps.py:7
-    And I am logged in                                                  # specs/steps/system_steps.py:52
-    Given a company exists with CNPJ "12.345.678/0001-90"               # specs/steps/company_steps.py:59
-    When I try to create another company with CNPJ "12.345.678/0001-90" # specs/steps/company_steps.py:91
-    And I save the company                                              # specs/steps/company_steps.py:100
-    Then I see a validation error "CNPJ already exists"                 # specs/steps/company_steps.py:276
-    And the company is not created                                      # specs/steps/company_steps.py:287
-
-  @analyst @admin @viewer
-  Scenario: View companies list                                # specs/features/companies.feature:43
-    Given the API is running                                   # specs/steps/company_steps.py:7
-    And I am logged in                                         # specs/steps/system_steps.py:52
-    Given companies exist in the system                        # specs/steps/company_steps.py:19
-    When I navigate to "Companies" page                        # specs/steps/company_steps.py:250
-    Then I see a list of all active companies                  # specs/steps/company_steps.py:292
-    And each company shows: company_id, empresa, cnpj, cliente # specs/steps/company_steps.py:296
-
-  @analyst @admin @viewer
-  Scenario: View company details                                            # specs/features/companies.feature:50
-    Given the API is running                                                # specs/steps/company_steps.py:7
-    And I am logged in                                                      # specs/steps/system_steps.py:52
-    Given a company exists with company_id "EMP001"                         # specs/steps/company_steps.py:27
-    When I click on the company                                             # specs/steps/company_steps.py:224
-    Then I see the full company details                                     # specs/steps/company_steps.py:303
-    And I see all fields: empresa, cnpj, razao_social, cliente, email_envio # specs/steps/company_steps.py:308
-
-  @analyst @admin
-  Scenario: Update company information              # specs/features/companies.feature:57
-    Given the API is running                        # specs/steps/company_steps.py:7
-    And I am logged in                              # specs/steps/system_steps.py:52
-    Given a company exists with company_id "EMP001" # specs/steps/company_steps.py:27
-    And I am on the company detail page             # specs/steps/company_steps.py:15
-    When I click "Edit Company"                     # specs/steps/company_steps.py:141
-    And I change the cliente to "Maria Santos"      # specs/steps/company_steps.py:145
-    And I click "Update"                            # specs/steps/company_steps.py:149
-    Then the company is updated                     # specs/steps/company_steps.py:314
-    And the cliente shows "Maria Santos"            # specs/steps/company_steps.py:319
-
-  @analyst @admin
-  Scenario: Deactivate a company                          # specs/features/companies.feature:67
-    Given the API is running                              # specs/steps/company_steps.py:7
-    And I am logged in                                    # specs/steps/system_steps.py:52
-    Given a company exists with company_id "EMP001"       # specs/steps/company_steps.py:27
-    When I click "Deactivate Company"                     # specs/steps/company_steps.py:172
-    And I confirm company deactivation                    # specs/steps/company_steps.py:176
-    Then the company is marked as inactive                # specs/steps/company_steps.py:325
-    And it no longer appears in the active companies list # specs/steps/company_steps.py:331
-    But its monthly records are preserved                 # specs/steps/company_steps.py:342
-
-  @admin
-  Scenario: Delete a company                          # specs/features/companies.feature:76
-    Given the API is running                          # specs/steps/company_steps.py:7
-    And I am logged in                                # specs/steps/system_steps.py:52
-    Given a company exists with company_id "EMP003"   # specs/steps/company_steps.py:27
-    When I click "Delete Company"                     # specs/steps/company_steps.py:198
-    And I confirm company deletion                    # specs/steps/company_steps.py:202
-    Then the company is permanently removed           # specs/steps/company_steps.py:348
-    And all its monthly records are deleted (CASCADE) # specs/steps/system_steps.py:412
-
-  @viewer
-  Scenario: Viewer cannot create companies         # specs/features/companies.feature:84
-    Given the API is running                       # specs/steps/company_steps.py:7
-    And I am logged in                             # specs/steps/system_steps.py:52
-    Given I am logged in as "viewer"               # specs/steps/system_steps.py:59
-    When I navigate to the companies page          # specs/steps/company_steps.py:243
-    Then I do not see a "New Company" button       # specs/steps/auth_steps.py:60
-    And I cannot access the creation page directly # specs/steps/auth_steps.py:229
-
-  @viewer
-  Scenario: Viewer cannot edit companies       # specs/features/companies.feature:91
-    Given the API is running                   # specs/steps/company_steps.py:7
-    And I am logged in                         # specs/steps/system_steps.py:52
-    Given a company exists                     # specs/steps/auth_steps.py:25
-    And I am logged in as "viewer"             # specs/steps/system_steps.py:59
-    When I view the company details            # specs/steps/auth_steps.py:42
-    Then I do not see an "Edit" button         # specs/steps/auth_steps.py:233
-    And I cannot access the edit page directly # specs/steps/auth_steps.py:237
-
-  @viewer
-  Scenario: Viewer cannot delete companies  # specs/features/companies.feature:99
-    Given the API is running                # specs/steps/company_steps.py:7
-    And I am logged in                      # specs/steps/system_steps.py:52
-    Given a company exists                  # specs/steps/auth_steps.py:25
-    And I am logged in as "viewer"          # specs/steps/system_steps.py:59
-    When I view the company details         # specs/steps/auth_steps.py:42
-    Then I do not see a "Delete" button     # specs/steps/auth_steps.py:64
-
-Feature: Cost Centers Management # specs/features/cost_centers.feature:1
-  As an analyst or admin
-  I want to manage cost centers
-  So that operational costs can be categorized
-  Feature: Cost Centers Management  # specs/features/cost_centers.feature:1
-
-  @analyst @admin
-  Scenario: Create cost center                   # specs/features/cost_centers.feature:10
-    Given I am logged in                         # specs/steps/system_steps.py:52
-    Given I am on the "New Cost Center" page     # specs/steps/auth_steps.py:72
-    When I fill in the cost center form:         # specs/steps/auth_steps.py:84
-      | code        | INF                      |
-      | name        | Infrastructure           |
-      | description | Server and hosting costs |
-    And I click "Save"                           # specs/steps/auth_steps.py:88
-    Then the cost center is created successfully # specs/steps/auth_steps.py:147
-    And I see the cost center in the list        # specs/steps/auth_steps.py:152
-    And the cost center is active                # specs/steps/auth_steps.py:158
-
-  @analyst @admin @viewer
-  Scenario: View cost centers list                      # specs/features/cost_centers.feature:22
-    Given I am logged in                                # specs/steps/system_steps.py:52
-    Given cost centers exist in the system              # specs/steps/auth_steps.py:18
-    When I navigate to "Cost Centers" page              # specs/steps/auth_steps.py:80
-    Then I see a list of all active cost centers        # specs/steps/auth_steps.py:163
-    And each cost center shows: code, name, description # specs/steps/auth_steps.py:167
-
-  @analyst @admin
-  Scenario: Update cost center                          # specs/features/cost_centers.feature:29
-    Given I am logged in                                # specs/steps/system_steps.py:52
-    Given a cost center exists with code "INF"          # specs/steps/auth_steps.py:68
-    And I am on the cost center detail page             # specs/steps/auth_steps.py:76
-    When I click "Edit"                                 # specs/steps/auth_steps.py:118
-    And I change the name to "Infrastructure & Hosting" # specs/steps/auth_steps.py:122
-    And I click "Save"                                  # specs/steps/auth_steps.py:88
-    Then the cost center is updated                     # specs/steps/auth_steps.py:171
-    And the name shows "Infrastructure & Hosting"       # specs/steps/auth_steps.py:176
-
-  @admin
-  Scenario: Deactivate cost center              # specs/features/cost_centers.feature:39
-    Given I am logged in                        # specs/steps/system_steps.py:52
-    Given a cost center exists with code "INF"  # specs/steps/auth_steps.py:68
-    When I click "Deactivate"                   # specs/steps/auth_steps.py:126
-    And I confirm the deactivation              # specs/steps/auth_steps.py:130
-    Then the cost center is marked as inactive  # specs/steps/auth_steps.py:180
-    And it no longer appears in the active list # specs/steps/auth_steps.py:185
-
-  @viewer
-  Scenario: Viewer cannot create cost centers      # specs/features/cost_centers.feature:47
-    Given I am logged in                           # specs/steps/system_steps.py:52
-    Given I am logged in as "viewer"               # specs/steps/system_steps.py:59
-    When I navigate to the cost centers page       # specs/steps/auth_steps.py:14
-    Then I do not see a "New Cost Center" button   # specs/steps/auth_steps.py:225
-    And I cannot access the creation page directly # specs/steps/auth_steps.py:229
-
-Feature: Monthly Cost Records # specs/features/monthly_records.feature:1
-  As an analyst
-  I want to enter monthly cost data per product
-  So that the controller team can track expenses month by month
-  Feature: Monthly Cost Records  # specs/features/monthly_records.feature:1
-
-  @analyst @admin
-  Scenario: Add monthly record for a product        # specs/features/monthly_records.feature:11
-    Given the API is running                        # specs/steps/company_steps.py:7
-    And I am logged in                              # specs/steps/system_steps.py:52
-    Given company "EMP001" exists                   # specs/steps/monthly_steps.py:36
-    When I add a monthly record:                    # specs/steps/monthly_steps.py:237
-      | field          | value      |
-      | mes_ano        | 2026-01-01 |
-      | elegiveis      | 100        |
-      | vidas_cobradas | 95         |
-      | valor_final    | 15000.00   |
-    And I save the monthly record                   # specs/steps/monthly_steps.py:284
-    Then the monthly record is created successfully # specs/steps/monthly_steps.py:458
-    And the monthly API returns status 201          # specs/steps/monthly_steps.py:464
-
-  @analyst @admin
-  Scenario: Duplicate month detection                                            # specs/features/monthly_records.feature:24
-    Given the API is running                                                     # specs/steps/company_steps.py:7
-    And I am logged in                                                           # specs/steps/system_steps.py:52
-    Given company "EMP-DUP" exists                                               # specs/steps/monthly_steps.py:36
-    And a monthly record for "EMP-DUP" + "2026-01-01"                            # specs/steps/monthly_steps.py:67
-    When I try to add another record for the same company + month                # specs/steps/monthly_steps.py:271
-    And I save the monthly record                                                # specs/steps/monthly_steps.py:284
-    Then I see a monthly validation error "Record already exists for this month" # specs/steps/monthly_steps.py:476
-
-  @analyst @admin
-  Scenario: Add multiple records for same company   # specs/features/monthly_records.feature:32
-    Given the API is running                        # specs/steps/company_steps.py:7
-    And I am logged in                              # specs/steps/system_steps.py:52
-    Given company "EMP001" exists                   # specs/steps/monthly_steps.py:36
-    When I add a monthly record:                    # specs/steps/monthly_steps.py:237
-      | field       | value      |
-      | mes_ano     | 2026-02-01 |
-      | valor_final | 15000.00   |
-    And I save the monthly record                   # specs/steps/monthly_steps.py:284
-    Then the monthly record is created successfully # specs/steps/monthly_steps.py:458
-
-  @analyst @admin @viewer
-  Scenario: View monthly records for a company           # specs/features/monthly_records.feature:42
-    Given the API is running                             # specs/steps/company_steps.py:7
-    And I am logged in                                   # specs/steps/system_steps.py:52
-    Given company "EMP001" has monthly records           # specs/steps/monthly_steps.py:175
-    When I retrieve monthly records for company "EMP001" # specs/steps/monthly_steps.py:351
-    Then I see all monthly records for that company      # specs/steps/monthly_steps.py:494
-    And each record shows: mes_ano, valor_final          # specs/steps/monthly_steps.py:500
-
-  @analyst @admin @viewer
-  Scenario: View records filtered by month                        # specs/features/monthly_records.feature:49
-    Given the API is running                                      # specs/steps/company_steps.py:7
-    And I am logged in                                            # specs/steps/system_steps.py:52
-    Given monthly records exist for "2026-01-01" and "2026-02-01" # specs/steps/monthly_steps.py:191
-    When I filter records by month "2026-01-01"                   # specs/steps/monthly_steps.py:374
-    Then I see only records from January 2026                     # specs/steps/monthly_steps.py:508
-    And I do not see February records                             # specs/steps/monthly_steps.py:515
-
-  @analyst @admin @viewer
-  Scenario: View all records across companies          # specs/features/monthly_records.feature:56
-    Given the API is running                           # specs/steps/company_steps.py:7
-    And I am logged in                                 # specs/steps/system_steps.py:52
-    Given monthly records exist for multiple companies # specs/steps/monthly_steps.py:218
-    When I retrieve all monthly records                # specs/steps/monthly_steps.py:386
-    Then I see records from all companies              # specs/steps/monthly_steps.py:521
-    And I can filter by company_id                     # specs/steps/monthly_steps.py:527
-
-  @analyst @admin
-  Scenario: Update a monthly record                           # specs/features/monthly_records.feature:63
-    Given the API is running                                  # specs/steps/company_steps.py:7
-    And I am logged in                                        # specs/steps/system_steps.py:52
-    Given a monthly record exists for "EMP001" + "2026-01-01" # specs/steps/monthly_steps.py:108
-    When I update the record:                                 # specs/steps/monthly_steps.py:323
-      | field       | value    |
-      | valor_final | 16000.00 |
-    And I save the update                                     # specs/steps/monthly_steps.py:82
-    Then the monthly record is updated                        # specs/steps/monthly_steps.py:470
-    And the valor_final shows 16000.00                        # specs/steps/monthly_steps.py:486
-
-  @admin
-  Scenario: Delete a monthly record                           # specs/features/monthly_records.feature:73
-    Given the API is running                                  # specs/steps/company_steps.py:7
-    And I am logged in                                        # specs/steps/system_steps.py:52
-    Given a monthly record exists for "EMP001" + "2026-01-01" # specs/steps/monthly_steps.py:108
-    When I delete the monthly record                          # specs/steps/monthly_steps.py:333
-    Then the record is permanently removed                    # specs/steps/monthly_steps.py:532
-    And I get 404 when retrieving it                          # specs/steps/monthly_steps.py:538
-
-  @viewer
-  Scenario: Viewer cannot create monthly records  # specs/features/monthly_records.feature:80
-    Given the API is running                      # specs/steps/company_steps.py:7
-    And I am logged in                            # specs/steps/system_steps.py:52
-    Given I am logged in as "viewer"              # specs/steps/system_steps.py:59
-    When I try to create a monthly record         # specs/steps/monthly_steps.py:396
-    Then the monthly operation is denied          # specs/steps/monthly_steps.py:546
-
-  @viewer
-  Scenario: Viewer cannot edit monthly records  # specs/features/monthly_records.feature:86
-    Given the API is running                    # specs/steps/company_steps.py:7
-    And I am logged in                          # specs/steps/system_steps.py:52
-    Given a monthly record exists               # specs/steps/monthly_steps.py:8
-    And I am logged in as "viewer"              # specs/steps/system_steps.py:59
-    When I try to update the monthly record     # specs/steps/monthly_steps.py:419
-    Then the monthly operation is denied        # specs/steps/monthly_steps.py:546
-
-  @viewer
-  Scenario: Viewer cannot delete monthly records  # specs/features/monthly_records.feature:93
-    Given the API is running                      # specs/steps/company_steps.py:7
-    And I am logged in                            # specs/steps/system_steps.py:52
-    Given a monthly record exists                 # specs/steps/monthly_steps.py:8
-    And I am logged in as "viewer"                # specs/steps/system_steps.py:59
-    When I try to delete the monthly record       # specs/steps/monthly_steps.py:440
-    Then the monthly operation is denied          # specs/steps/monthly_steps.py:546
-
-Feature: Reporting and Export # specs/features/reporting.feature:1
-  As a controller team member
-  I want to view dashboard KPIs and export data
-  So that I can analyze costs and share reports
-  Feature: Reporting and Export  # specs/features/reporting.feature:1
-
-  @analyst @admin @viewer
-  Scenario: View dashboard KPIs                  # specs/features/reporting.feature:11
-    Given the API is running                     # specs/steps/company_steps.py:7
-    And I am logged in                           # specs/steps/system_steps.py:52
-    When I retrieve the dashboard data           # specs/steps/reporting_steps.py:8
-    Then I see total elegíveis totalpass/gympass # specs/steps/reporting_steps.py:30
-    And I see total nº vidas                     # specs/steps/reporting_steps.py:36
-    And I see total valor vidas                  # specs/steps/reporting_steps.py:42
-    And I see total custo por cliente            # specs/steps/reporting_steps.py:48
-    And I see total valor faturado               # specs/steps/reporting_steps.py:54
-
-  @analyst @admin @viewer
-  Scenario: View dashboard filtered by month             # specs/features/reporting.feature:20
-    Given the API is running                             # specs/steps/company_steps.py:7
-    And I am logged in                                   # specs/steps/system_steps.py:52
-    When I retrieve the dashboard for month "2026-01-01" # specs/steps/reporting_steps.py:19
-    Then I see KPIs for January 2026 only                # specs/steps/reporting_steps.py:60
-
-  @analyst @admin @viewer
-  Scenario: Export monthly records to CSV                         # specs/features/reporting.feature:25
-    Given the API is running                                      # specs/steps/company_steps.py:7
-    And I am logged in                                            # specs/steps/system_steps.py:52
-    Given monthly records exist for "2026-01-01" and "2026-02-01" # specs/steps/monthly_steps.py:191
-    When I export records for month "2026-01-01"                  # specs/steps/reporting_steps.py:65
-    Then I receive a CSV file                                     # specs/steps/reporting_steps.py:81
-    And the CSV contains the records for that month               # specs/steps/reporting_steps.py:88
-
-  @analyst @admin @viewer
-  Scenario: Export all monthly records                 # specs/features/reporting.feature:32
-    Given the API is running                           # specs/steps/company_steps.py:7
-    And I am logged in                                 # specs/steps/system_steps.py:52
-    Given monthly records exist for multiple companies # specs/steps/monthly_steps.py:218
-    When I export all records                          # specs/steps/reporting_steps.py:73
-    Then I receive a CSV file                          # specs/steps/reporting_steps.py:81
-    And the CSV contains all records                   # specs/steps/reporting_steps.py:94
-
-Feature: Data Model # specs/system/data_model.feature:1
-  As a database administrator
-  I want a well-defined data model
-  So that data integrity is maintained
-  Scenario: Core tables exist          # specs/system/data_model.feature:6
-    Given the database is initialized  # specs/steps/system_steps.py:86
-    Then table "profiles" exists       # specs/steps/system_steps.py:313
-    And table "companies" exists       # specs/steps/system_steps.py:313
-    And table "monthly_records" exists # specs/steps/system_steps.py:313
-    And table "audit_logs" exists      # specs/steps/system_steps.py:313
-
-  Scenario: Company data has proper constraints  # specs/system/data_model.feature:13
-    Given a company is created                   # specs/steps/system_steps.py:113
-    Then the cnpj field is unique                # specs/steps/system_steps.py:318
-    And the company_id field is unique           # specs/steps/system_steps.py:331
-    And the is_active flag defaults to true      # specs/steps/system_steps.py:343
-
-  Scenario: Monthly records have unique constraint                   # specs/system/data_model.feature:19
-    Given a monthly record is created                                # specs/steps/system_steps.py:117
-    Then the combination of company_id + produto + mes_ano is unique # specs/steps/system_steps.py:356
-    And each record is linked to a valid company                     # specs/steps/system_steps.py:368
-    And financial fields use DECIMAL type                            # specs/steps/system_steps.py:381
-
-  Scenario: Financial data uses proper types  # specs/system/data_model.feature:25
-    Given a monthly record is created         # specs/steps/system_steps.py:117
-    Then valor_final uses DECIMAL type        # specs/steps/system_steps.py:142
-    And valor_elegivel uses DECIMAL type      # specs/steps/system_steps.py:154
-    And rs_carregado uses DECIMAL type        # specs/steps/system_steps.py:166
-    And amounts cannot be negative            # specs/steps/system_steps.py:398
-
-  Scenario: Referential integrity is enforced          # specs/system/data_model.feature:32
-    Given a company is referenced by monthly records   # specs/steps/system_steps.py:121
-    When the company is deleted                        # specs/steps/system_steps.py:125
-    Then all its monthly records are deleted (CASCADE) # specs/steps/system_steps.py:412
-    And no orphaned records exist                      # specs/steps/system_steps.py:129
-
-Feature: Security Model # specs/system/security_model.feature:1
-  As a system architect
-  I want robust security policies
-  So that data is protected at all levels
-  Scenario: RLS policies enforce role hierarchy           # specs/system/security_model.feature:6
-    Given the role hierarchy is: admin > analyst > viewer # specs/steps/system_steps.py:78
-    When a "viewer" attempts to create a cost             # specs/steps/system_steps.py:200
-    Then the operation is denied                          # specs/steps/system_steps.py:285
-    When an "analyst" attempts to delete a cost           # specs/steps/system_steps.py:207
-    Then the operation is denied                          # specs/steps/system_steps.py:285
-    When an "admin" performs any operation                # specs/steps/system_steps.py:213
-    Then the operation is allowed                         # specs/steps/system_steps.py:289
-
-  Scenario: Authentication is required for all operations  # specs/system/security_model.feature:15
-    Given an unauthenticated user                          # specs/steps/system_steps.py:70
-    When they attempt to access any protected resource     # specs/steps/system_steps.py:218
-    Then they receive a 401 Unauthorized response          # specs/steps/system_steps.py:293
-
-  Scenario: Audit trail captures all changes          # specs/system/security_model.feature:20
-    Given a cost is created, updated, or deleted      # specs/steps/system_steps.py:182
-    Then an audit log entry is created                # specs/steps/system_steps.py:297
-    And the log contains the old and new values       # specs/steps/system_steps.py:303
-    And the log contains the user who made the change # specs/steps/system_steps.py:308
-
-Feature: System Overview # specs/system/system_overview.feature:1
-  As a controller team
-  I want a monthly cost tracking system
-  So that I can manage company benefits costs (Gympass, Wiipo, Flex) month by month
-  Scenario: System provides company management  # specs/system/system_overview.feature:6
-    Given the system is deployed                # specs/steps/system_steps.py:28
-    Then users can register companies           # specs/steps/system_steps.py:224
-    And users can view company details          # specs/steps/system_steps.py:229
-    And users can deactivate companies          # specs/steps/system_steps.py:234
-
-  Scenario: System provides monthly cost tracking         # specs/system/system_overview.feature:12
-    Given the system is deployed                          # specs/steps/system_steps.py:28
-    Then users can enter monthly cost records per product # specs/steps/system_steps.py:239
-    And users can view costs month by month               # specs/steps/system_steps.py:244
-    And users can filter by company and month             # specs/steps/system_steps.py:249
-    And each month shows all products for that company    # specs/steps/system_steps.py:254
-
-  Scenario: System enforces role-based access control       # specs/system/system_overview.feature:19
-    Given a user is authenticated                           # specs/steps/system_steps.py:65
-    When the user has role "viewer"                         # specs/steps/system_steps.py:188
-    Then they can only view data                            # specs/steps/system_steps.py:192
-    When the user has role "analyst"                        # specs/steps/system_steps.py:188
-    Then they can create and update data                    # specs/steps/system_steps.py:196
-    When the user has role "admin"                          # specs/steps/system_steps.py:188
-    Then they can perform all operations including deletion # specs/steps/system_steps.py:273
-
-  Scenario: System maintains data security via RLS          # specs/system/system_overview.feature:28
-    Given the database has Row Level Security enabled       # specs/steps/system_steps.py:74
-    Then users can only access data according to their role # specs/steps/system_steps.py:277
-    And all data access is enforced at database level       # specs/steps/system_steps.py:281
+    Then the audit operation is denied       # None
+----
+CAPTURED STDERR: scenario
+specs/steps/company_steps.py:9: ContextMaskWarning: user code is masking context attribute 'api_base'; see the tutorial for what this means
+  context.api_base = API_BASE_URL
+---- CAPTURED_SCENARIO_OUTPUT_END ----
 
