@@ -74,6 +74,9 @@ export default function CompaniesList() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showInactive, setShowInactive] = useState(false);
   const [confirmAction, setConfirmAction] = useState<{ company: any; action: 'activate' | 'deactivate' } | null>(null);
+  const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(20);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const { data: companies, isLoading } = useQuery({
     queryKey: ['companies', showInactive],
@@ -81,6 +84,35 @@ export default function CompaniesList() {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
+
+  // Filter by search
+  const filtered = (companies || []).filter(c => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      c.empresa?.toLowerCase().includes(q) ||
+      c.cnpj?.toLowerCase().includes(q) ||
+      c.cliente?.toLowerCase().includes(q) ||
+      c.company_id?.toLowerCase().includes(q)
+    );
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const safePage = Math.min(currentPage, Math.max(1, totalPages));
+  if (safePage !== currentPage) setCurrentPage(safePage);
+  const start = (safePage - 1) * pageSize;
+  const paged = filtered.slice(start, start + pageSize);
+
+  // Reset page when search or pageSize changes
+  const handleSearchChange = (v: string) => {
+    setSearch(v);
+    setCurrentPage(1);
+  };
+  const handlePageSizeChange = (v: number) => {
+    setPageSize(v);
+    setCurrentPage(1);
+  };
 
   const [formData, setFormData] = useState({
     company_id: '',
@@ -203,11 +235,14 @@ export default function CompaniesList() {
               <input
                 type="checkbox"
                 checked={showInactive}
-                onChange={() => setShowInactive(!showInactive)}
+                onChange={() => { setShowInactive(!showInactive); setCurrentPage(1); }}
                 className="rounded border-gray-300"
               />
               Mostrar inativas
             </label>
+            <span className="text-xs text-gray-400">
+              {filtered.length} de {companies?.length || 0} empresa(s)
+            </span>
           </div>
         </div>
         <div className="flex gap-2">
@@ -267,6 +302,34 @@ export default function CompaniesList() {
         </form>
       )}
 
+      {/* Search bar */}
+      <div className="bg-white rounded-lg shadow p-4 mb-4">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Buscar por empresa, CNPJ, cliente ou ID..."
+              className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-gray-500">Exibir:</label>
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="border rounded px-2 py-1.5 text-sm bg-white"
+            >
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -281,7 +344,7 @@ export default function CompaniesList() {
             </tr>
           </thead>
           <tbody className="divide-y">
-            {companies?.map((company) => (
+            {paged?.map((company) => (
               <tr key={company.id} className={`hover:bg-gray-50 ${!company.is_active ? 'bg-gray-50' : ''}`}>
                 <td className="px-4 py-3">
                   <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -320,16 +383,70 @@ export default function CompaniesList() {
                 </td>
               </tr>
             ))}
-            {companies?.length === 0 && (
+            {filtered.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                  {showInactive ? 'Nenhuma empresa encontrada' : 'Nenhuma empresa ativa. Marque "Mostrar inativas" para ver todas.'}
+                  {search
+                    ? `Nenhum resultado para "${search}"`
+                    : showInactive
+                    ? 'Nenhuma empresa encontrada'
+                    : 'Nenhuma empresa ativa. Marque "Mostrar inativas" para ver todas.'}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-4 gap-3">
+          <p className="text-sm text-gray-500">
+            Mostrando {start + 1}–{Math.min(start + pageSize, filtered.length)} de {filtered.length} empresa(s)
+          </p>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, safePage - 1))}
+              disabled={safePage === 1}
+              className="px-3 py-1.5 rounded text-sm bg-white border disabled:opacity-50 hover:bg-gray-50"
+            >
+              ← Anterior
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let page: number;
+              if (totalPages <= 5) {
+                page = i + 1;
+              } else if (safePage <= 3) {
+                page = i + 1;
+              } else if (safePage >= totalPages - 2) {
+                page = totalPages - 4 + i;
+              } else {
+                page = safePage - 2 + i;
+              }
+              return (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1.5 rounded text-sm min-w-[36px] ${
+                    page === safePage
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white border hover:bg-gray-50'
+                  }`}
+                >
+                  {page}
+                </button>
+              );
+            })}
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, safePage + 1))}
+              disabled={safePage === totalPages}
+              className="px-3 py-1.5 rounded text-sm bg-white border disabled:opacity-50 hover:bg-gray-50"
+            >
+              Próxima →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation modal for activate/deactivate */}
       {confirmAction && (
