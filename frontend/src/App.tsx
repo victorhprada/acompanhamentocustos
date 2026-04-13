@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import CompaniesList from './pages/Companies/CompaniesList';
 import CompanyDetail from './pages/Companies/CompanyDetail';
-import Login from './pages/login.tsx';
+import Login from './pages/login';
 import AuditLog from './pages/AuditLog';
 import { supabase } from './lib/supabase';
 
