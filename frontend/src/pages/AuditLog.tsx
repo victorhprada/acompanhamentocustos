@@ -27,6 +27,11 @@ export default function AuditLog() {
     fetchLogs();
   }, [offset, filterTable, filterAction]);
 
+  // Reset expandedId when logs change (pagination/filters)
+  useEffect(() => {
+    setExpandedId(null);
+  }, [offset, filterTable, filterAction]);
+
   async function fetchLogs() {
     setLoading(true);
     try {
@@ -153,7 +158,7 @@ export default function AuditLog() {
           </div>
 
           {/* Expanded detail */}
-          {expandedId && (() => {
+          {expandedId && logs.find(l => l.id === expandedId) && (() => {
             const log = logs.find(l => l.id === expandedId)!;
             return (
               <div className="bg-white rounded-lg shadow p-4 mt-4">
