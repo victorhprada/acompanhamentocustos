@@ -4,10 +4,21 @@ Sistema de gerenciamento de custos operacionais para a equipe de controladoria, 
 
 ## Status do Projeto
 
-**Fase:** Setup inicial completo  
-**Metodologia:** SDD com Gherkin/Behave  
-**Specs:** ✅ Configuradas e rodando  
-**Estado:** 🔴 RED (aguardando implementação)
+**Fase:** Production Ready ✅
+**Metodologia:** SDD com Gherkin/Behave
+**Specs:** ✅ 47/47 passando (100%)
+**Estado:** 🟢 GREEN (todas as fases concluídas)
+
+## Features Implementadas
+
+- ✅ **Autenticação** — Supabase Auth com roles (Admin/Analyst/Viewer)
+- ✅ **Companies CRUD** — Cadastro completo de empresas
+- ✅ **Monthly Records** — Registros mensais com propagação automática
+- ✅ **Dashboard KPIs** — 5 indicadores com filtro por ano/mês
+- ✅ **Export CSV** — Download de registros em formato CSV
+- ✅ **Import Excel** — Upload de planilhas com auto-mapping
+- ✅ **Audit Log** — Histórico completo de alterações
+- ✅ **RLS Policies** — Segurança a nível de linha no Supabase
 
 ## Stack
 
@@ -184,17 +195,18 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 VITE_API_BASE_URL=http://localhost:8000/api/v1
 ```
 
-## Próximos Passos
+## Deploy
 
-1. [ ] Aplicar schema no Supabase via MCP
-2. [ ] Configurar autenticação de teste
-3. [ ] Implementar Phase 1: Authentication & Cost Centers
-4. [ ] Rodar specs até ficarem GREEN
-5. [ ] Implementar Phase 2: Operational Costs
+Veja [DEPLOY.md](./DEPLOY.md) para instruções completas de deploy:
+
+- **Backend:** Railway ou Render
+- **Frontend:** Vercel ou Netlify
+- **CI/CD:** GitHub Actions (testes + build automático)
 
 ## Documentação
 
 - [Development Guide](./DEVELOPMENT_GUIDE.md) - Guia completo com specs detalhadas
+- [Deploy Guide](./DEPLOY.md) - Como fazer deploy em produção
 - [CLAUDE.md](./CLAUDE.md) - Agent development directives
 
 ## Comandos Úteis
