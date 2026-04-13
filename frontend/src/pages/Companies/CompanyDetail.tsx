@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getCompany, getMonthlyRecords, updateCompany, deactivateCompany } from '../../services/api';
 import MonthTable from '../../components/MonthTable';
 
@@ -34,6 +35,7 @@ export default function CompanyDetail() {
       setEditing(false);
       setErrors({});
       queryClient.invalidateQueries({ queryKey: ['company', id] });
+      toast.success('Empresa atualizada com sucesso');
     },
     onError: (err: any) => {
       const data = err?.response?.data;
@@ -46,12 +48,19 @@ export default function CompanyDetail() {
         });
         setErrors(errs);
       }
+      toast.error('Erro ao atualizar empresa');
     },
   });
 
   const deactivateMutation = useMutation({
     mutationFn: deactivateCompany,
-    onSuccess: () => navigate('/companies'),
+    onSuccess: () => {
+      toast.success('Empresa desativada');
+      navigate('/companies');
+    },
+    onError: () => {
+      toast.error('Erro ao desativar empresa');
+    },
   });
 
   const startEdit = () => {

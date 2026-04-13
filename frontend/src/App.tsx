@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import CompaniesList from './pages/Companies/CompaniesList';
 import CompanyDetail from './pages/Companies/CompanyDetail';
@@ -196,6 +197,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster richColors position="top-right" closeButton />
       <AuthProvider>
         <BrowserRouter>
           <Routes>

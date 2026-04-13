@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { createMonthlyRecord, updateMonthlyRecord, deleteMonthlyRecord } from '../services/api';
 import { MonthlyRecord } from '../types';
 
@@ -95,8 +96,9 @@ export default function MonthTable({
       setPropagating(false);
       setPropagatingAll(false);
       queryClient.invalidateQueries({ queryKey: ['monthly', companyId] });
+      toast.success('Registro criado com sucesso');
     },
-    onError: () => { setPropagating(false); setPropagatingAll(false); },
+    onError: () => { setPropagating(false); setPropagatingAll(false); toast.error('Erro ao criar registro'); },
   });
 
   const updateMutation = useMutation({
@@ -107,13 +109,18 @@ export default function MonthTable({
       setPropagating(false);
       setPropagatingAll(false);
       queryClient.invalidateQueries({ queryKey: ['monthly', companyId] });
+      toast.success('Registro atualizado com sucesso');
     },
-    onError: () => { setPropagating(false); setPropagatingAll(false); },
+    onError: () => { setPropagating(false); setPropagatingAll(false); toast.error('Erro ao atualizar registro'); },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteMonthlyRecord(id, false),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['monthly', companyId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['monthly', companyId] });
+      toast.success('Registro excluído');
+    },
+    onError: () => toast.error('Erro ao excluir registro'),
   });
 
   const startEdit = () => {

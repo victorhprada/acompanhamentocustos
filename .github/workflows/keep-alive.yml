@@ -1,0 +1,20 @@
+name: Keep Backend Alive
+
+on:
+  schedule:
+    # Run every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ secrets.BACKEND_URL }}/health)
+          echo "Backend responded with status: $response"
+          if [ "$response" != "200" ]; then
+            echo "Warning: Backend may be down!"
+            exit 1
+          fi

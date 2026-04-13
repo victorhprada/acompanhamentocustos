@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 import { getCompanies, createCompany, updateCompany, deactivateCompany, activateCompany } from '../../services/api';
 import ImportModal from '../../components/ImportModal';
 
@@ -130,18 +131,26 @@ export default function CompaniesList() {
     mutationFn: createCompany,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies', showInactive] });
+      toast.success('Empresa criada com sucesso');
       closeForm();
     },
-    onError: (err: any) => setErrors(parseApiErrors(err)),
+    onError: (err: any) => {
+      setErrors(parseApiErrors(err));
+      toast.error('Erro ao criar empresa');
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: any }) => updateCompany(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies', showInactive] });
+      toast.success('Empresa atualizada com sucesso');
       closeForm();
     },
-    onError: (err: any) => setErrors(parseApiErrors(err)),
+    onError: (err: any) => {
+      setErrors(parseApiErrors(err));
+      toast.error('Erro ao atualizar empresa');
+    },
   });
 
   const closeForm = () => {
@@ -172,6 +181,11 @@ export default function CompaniesList() {
     mutationFn: deactivateCompany,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies', showInactive] });
+      toast.success('Empresa desativada');
+      setConfirmAction(null);
+    },
+    onError: () => {
+      toast.error('Erro ao desativar empresa');
       setConfirmAction(null);
     },
   });
@@ -180,6 +194,11 @@ export default function CompaniesList() {
     mutationFn: activateCompany,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies', showInactive] });
+      toast.success('Empresa ativada');
+      setConfirmAction(null);
+    },
+    onError: () => {
+      toast.error('Erro ao ativar empresa');
       setConfirmAction(null);
     },
   });
