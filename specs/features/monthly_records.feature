@@ -13,7 +13,6 @@ Feature: Monthly Cost Records
     When I add a monthly record:
       | field          | value      |
       | mes_ano        | 2026-01-01 |
-      | produto        | Gympass    |
       | elegiveis      | 100        |
       | vidas_cobradas | 95         |
       | valor_final    | 15000.00   |
@@ -24,35 +23,27 @@ Feature: Monthly Cost Records
   @analyst @admin
   Scenario: Duplicate month detection
     Given company "EMP-DUP" exists
-    And a monthly record for "EMP-DUP" + "Gympass" + "2026-01-01"
-    When I try to add another record for the same company + product + month
+    And a monthly record for "EMP-DUP" + "2026-01-01"
+    When I try to add another record for the same company + month
     And I save the monthly record
-    Then I see a monthly validation error "Record already exists for this month and product"
+    Then I see a monthly validation error "Record already exists for this month"
 
   @analyst @admin
-  Scenario: Add multiple products for same month
+  Scenario: Add multiple records for same company
     Given company "EMP001" exists
     When I add a monthly record:
       | field       | value      |
       | mes_ano     | 2026-02-01 |
-      | produto     | Gympass    |
       | valor_final | 15000.00   |
     And I save the monthly record
-    And I add another monthly record:
-      | field       | value     |
-      | mes_ano     | 2026-02-01 |
-      | produto     | Wiipo     |
-      | valor_final | 3000.00   |
-    And I save the monthly record
-    Then both records are created
-    And I can retrieve both for the same month
+    Then the monthly record is created successfully
 
   @analyst @admin @viewer
   Scenario: View monthly records for a company
     Given company "EMP001" has monthly records
     When I retrieve monthly records for company "EMP001"
     Then I see all monthly records for that company
-    And each record shows: mes_ano, produto, valor_final
+    And each record shows: mes_ano, valor_final
 
   @analyst @admin @viewer
   Scenario: View records filtered by month
@@ -70,7 +61,7 @@ Feature: Monthly Cost Records
 
   @analyst @admin
   Scenario: Update a monthly record
-    Given a monthly record exists for "EMP001" + "Gympass" + "2026-01-01"
+    Given a monthly record exists for "EMP001" + "2026-01-01"
     When I update the record:
       | field       | value    |
       | valor_final | 16000.00 |
@@ -80,7 +71,7 @@ Feature: Monthly Cost Records
 
   @admin
   Scenario: Delete a monthly record
-    Given a monthly record exists for "EMP001" + "Gympass" + "2026-01-01"
+    Given a monthly record exists for "EMP001" + "2026-01-01"
     When I delete the monthly record
     Then the record is permanently removed
     And I get 404 when retrieving it

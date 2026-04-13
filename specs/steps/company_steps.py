@@ -108,13 +108,14 @@ def step_click_save_company(context):
         json=context.form_data,
         headers=headers,
     )
-    
-    # Handle duplicate - try with unique suffixes
-    if response.status_code == 400 and 'already exists' in str(response.json()).lower():
+
+    # Handle duplicate - only retry if NOT expecting duplicate
+    expect_dup = getattr(context, 'expect_duplicate', False)
+    if response.status_code == 400 and 'already exists' in str(response.json()).lower() and not expect_dup:
         import time
         suffix = str(int(time.time()))[-4:]
         original_data = context.form_data.copy()
-        
+
         # Try making both company_id and CNPJ unique
         if 'company_id' in original_data:
             context.form_data['company_id'] = f"{original_data['company_id']}-{suffix}"
@@ -123,13 +124,13 @@ def step_click_save_company(context):
             cnpj = original_data['cnpj'].replace('/', '').replace('.', '').replace('-', '')
             new_cnpj = cnpj[:-4] + suffix
             context.form_data['cnpj'] = f"{new_cnpj[:2]}.{new_cnpj[2:5]}.{new_cnpj[5:8]}/{new_cnpj[8:12]}-{new_cnpj[12:]}"
-        
+
         response = requests.post(
             f"{API_BASE_URL}/companies",
             json=context.form_data,
             headers=headers,
         )
-    
+
     context.last_response = response
     context.last_response_status = response.status_code
     try:

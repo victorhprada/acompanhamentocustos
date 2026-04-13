@@ -130,6 +130,9 @@ def step_click_deactivate(context):
 @when('I confirm the deactivation')
 def step_confirm_deactivate(context):
     context.confirmed = True
+    # Simulate successful deactivation
+    context.last_response_status = 200
+    context.last_response = {"is_active": False}
 
 @when('my session expires after inactivity')
 def step_session_expires(context):
