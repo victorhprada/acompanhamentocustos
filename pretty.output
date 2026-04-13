@@ -347,6 +347,48 @@ Feature: Monthly Cost Records # specs/features/monthly_records.feature:1
     When I try to delete the monthly record       # specs/steps/monthly_steps.py:440
     Then the monthly operation is denied          # specs/steps/monthly_steps.py:546
 
+Feature: Reporting and Export # specs/features/reporting.feature:1
+  As a controller team member
+  I want to view dashboard KPIs and export data
+  So that I can analyze costs and share reports
+  Feature: Reporting and Export  # specs/features/reporting.feature:1
+
+  @analyst @admin @viewer
+  Scenario: View dashboard KPIs                  # specs/features/reporting.feature:11
+    Given the API is running                     # specs/steps/company_steps.py:7
+    And I am logged in                           # specs/steps/system_steps.py:52
+    When I retrieve the dashboard data           # specs/steps/reporting_steps.py:8
+    Then I see total elegíveis totalpass/gympass # specs/steps/reporting_steps.py:30
+    And I see total nº vidas                     # specs/steps/reporting_steps.py:36
+    And I see total valor vidas                  # specs/steps/reporting_steps.py:42
+    And I see total custo por cliente            # specs/steps/reporting_steps.py:48
+    And I see total valor faturado               # specs/steps/reporting_steps.py:54
+
+  @analyst @admin @viewer
+  Scenario: View dashboard filtered by month             # specs/features/reporting.feature:20
+    Given the API is running                             # specs/steps/company_steps.py:7
+    And I am logged in                                   # specs/steps/system_steps.py:52
+    When I retrieve the dashboard for month "2026-01-01" # specs/steps/reporting_steps.py:19
+    Then I see KPIs for January 2026 only                # specs/steps/reporting_steps.py:60
+
+  @analyst @admin @viewer
+  Scenario: Export monthly records to CSV                         # specs/features/reporting.feature:25
+    Given the API is running                                      # specs/steps/company_steps.py:7
+    And I am logged in                                            # specs/steps/system_steps.py:52
+    Given monthly records exist for "2026-01-01" and "2026-02-01" # specs/steps/monthly_steps.py:191
+    When I export records for month "2026-01-01"                  # specs/steps/reporting_steps.py:65
+    Then I receive a CSV file                                     # specs/steps/reporting_steps.py:81
+    And the CSV contains the records for that month               # specs/steps/reporting_steps.py:88
+
+  @analyst @admin @viewer
+  Scenario: Export all monthly records                 # specs/features/reporting.feature:32
+    Given the API is running                           # specs/steps/company_steps.py:7
+    And I am logged in                                 # specs/steps/system_steps.py:52
+    Given monthly records exist for multiple companies # specs/steps/monthly_steps.py:218
+    When I export all records                          # specs/steps/reporting_steps.py:73
+    Then I receive a CSV file                          # specs/steps/reporting_steps.py:81
+    And the CSV contains all records                   # specs/steps/reporting_steps.py:94
+
 Feature: Data Model # specs/system/data_model.feature:1
   As a database administrator
   I want a well-defined data model

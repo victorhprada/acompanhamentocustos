@@ -237,24 +237,125 @@ function App() {
 }
 
 function Dashboard() {
+  const [kpis, setKpis] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7) + '-01');
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+        const res = await fetch(`${API_BASE}/dashboard?mes_ano=${selectedMonth}`);
+        if (res.ok) {
+          const data = await res.json();
+          setKpis(data);
+        }
+      } catch (e) {
+        console.error('Failed to fetch dashboard:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, [selectedMonth]);
+
+  const formatMoney = (val: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+  };
+
+  const formatNumber = (val: number) => {
+    return new Intl.NumberFormat('pt-BR').format(val || 0);
+  };
+
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard title="Empresas Ativas" value="..." />
-        <StatCard title="Registros Mensais" value="..." />
-        <StatCard title="Mês Atual" value={new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })} />
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
+        <div>
+          <label className="text-sm text-gray-500 mr-2">Mês:</label>
+          <input
+            type="month"
+            value={selectedMonth.slice(0, 7)}
+            onChange={(e) => setSelectedMonth(e.target.value + '-01')}
+            className="border rounded px-3 py-1.5 text-sm"
+          />
+        </div>
       </div>
-      <p className="text-gray-500 mt-8">Em desenvolvimento - Phase 4</p>
+
+      {loading ? (
+        <div className="text-center py-12 text-gray-400">Carregando...</div>
+      ) : kpis ? (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <StatCard title="Empresas Ativas" value={formatNumber(kpis.total_empresas_ativas)} />
+            <StatCard title="Registros no Mês" value={formatNumber(kpis.total_registros)} />
+          </div>
+
+          {/* KPIs */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <KPICard
+              title="Total Elegíveis Totalpass/Gympass"
+              value={formatNumber(kpis.kpis?.total_elegiveis_totalpass_gympass)}
+              icon="👥"
+            />
+            <KPICard
+              title="Total Nº Vidas"
+              value={formatNumber(kpis.kpis?.total_nr_vidas)}
+              icon="❤️"
+            />
+            <KPICard
+              title="Total Valor Vidas"
+              value={formatMoney(kpis.kpis?.total_valor_vidas)}
+              icon="💰"
+            />
+            <KPICard
+              title="Total Custo por Cliente"
+              value={formatMoney(kpis.kpis?.total_custo_por_cliente)}
+              icon="📊"
+            />
+            <KPICard
+              title="Total Valor Faturado"
+              value={formatMoney(kpis.kpis?.total_valor_faturado)}
+              icon="💵"
+            />
+          </div>
+
+          {/* Export button */}
+          <div className="mt-6">
+            <a
+              href={`${(import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'}/export/monthly?mes_ano=${selectedMonth}`}
+              className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
+              download
+            >
+              📥 Exportar CSV
+            </a>
+          </div>
+        </>
+      ) : (
+        <div className="text-center py-12 text-gray-400">Erro ao carregar dados</div>
+      )}
     </div>
   );
 }
 
-function StatCard({ title, value }: { title: string; value: string }) {
+function StatCard({ title, value }: { title: string; value: string | number }) {
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <p className="text-sm text-gray-500">{title}</p>
       <p className="text-3xl font-bold text-gray-800 mt-1">{value}</p>
+    </div>
+  );
+}
+
+function KPICard({ title, value, icon }: { title: string; value: string; icon: string }) {
+  return (
+    <div className="bg-white rounded-lg shadow p-5 border-l-4 border-blue-500">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xl">{icon}</span>
+        <p className="text-xs font-medium text-gray-500 uppercase">{title}</p>
+      </div>
+      <p className="text-2xl font-bold text-gray-800">{value}</p>
     </div>
   );
 }

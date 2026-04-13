@@ -6,7 +6,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // Bypass the Web Locks API to prevent NavigatorLockAcquireTimeoutError
-    // caused by concurrent lock acquisition between signInWithPassword and onAuthStateChange
-    lock: (_name: string, _acquireTimeout: number, fn: () => Promise<unknown>) => fn(),
+    lock: async <R>(_name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => fn(),
   },
 });
