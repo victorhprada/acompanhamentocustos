@@ -239,7 +239,26 @@ function App() {
 function Dashboard() {
   const [kpis, setKpis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7) + '-01');
+  const MESES_PT = [
+    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+  ];
+
+  function gerarMeses(ano: number) {
+    return MESES_PT.map((nome, i) => ({
+      value: `${ano}-${String(i + 1).padStart(2, '0')}-01`,
+      label: `${nome}/${ano}`,
+    }));
+  }
+
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const meses = gerarMeses(selectedYear);
+  const [selectedMonth, setSelectedMonth] = useState(
+    selectedYear === now.getFullYear()
+      ? meses[now.getMonth()]?.value
+      : meses[0]?.value
+  );
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -271,14 +290,36 @@ function Dashboard() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
-        <div>
-          <label className="text-sm text-gray-500 mr-2">Mês:</label>
-          <input
-            type="month"
-            value={selectedMonth.slice(0, 7)}
-            onChange={(e) => setSelectedMonth(e.target.value + '-01')}
-            className="border rounded px-3 py-1.5 text-sm"
-          />
+        <div className="flex items-center gap-3">
+          <div>
+            <label className="text-sm text-gray-500 block mb-1">Ano:</label>
+            <input
+              type="number"
+              value={selectedYear}
+              onChange={(e) => {
+                const y = parseInt(e.target.value);
+                if (y >= 2020 && y <= 2099) {
+                  setSelectedYear(y);
+                  setSelectedMonth(gerarMeses(y)[0].value);
+                }
+              }}
+              className="border rounded px-3 py-1.5 text-sm w-24 bg-white"
+              min={2020}
+              max={2099}
+            />
+          </div>
+          <div>
+            <label className="text-sm text-gray-500 block mb-1">Mês:</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="border rounded px-3 py-1.5 text-sm bg-white min-w-[160px]"
+            >
+              {meses.map(m => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
