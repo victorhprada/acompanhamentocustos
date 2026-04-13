@@ -28,29 +28,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        loadUserProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        await loadUserProfile(session.user.id);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
+  const profileLoadingRef = { current: false };
 
   async function loadUserProfile(userId: string) {
+    if (profileLoadingRef.current) return;
+    profileLoadingRef.current = true;
+
     try {
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -65,14 +48,38 @@ function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     } finally {
       setLoading(false);
+      profileLoadingRef.current = false;
     }
   }
+
+  useEffect(() => {
+    // Only use onAuthStateChange to avoid lock conflicts
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+        }
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setLoading(false);
+      } else if (event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+        } else {
+          setLoading(false);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   async function signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
-    if (data.user) {
-      await loadUserProfile(data.user.id);
+    // onAuthStateChange will handle profile loading
+    if (!data.user) {
+      setLoading(false);
     }
   }
 
