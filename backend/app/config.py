@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: Optional[str] = None
     
+    # CORS
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
+
     # Auth
     SECRET_KEY: str = "change-me-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
