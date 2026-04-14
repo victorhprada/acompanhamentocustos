@@ -71,7 +71,7 @@ export default function CompanyDetail() {
       empresa: company.empresa,
       cnpj: company.cnpj,
       razao_social: company.razao_social,
-      cliente: company.cliente,
+      data_assinatura_contrato: company.data_assinatura_contrato ? company.data_assinatura_contrato.slice(0, 10) : '',
       email_envio: company.email_envio,
       inicio_cobranca: company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10) : '',
       vencimento: company.vencimento?.toString() || '',
@@ -84,7 +84,7 @@ export default function CompanyDetail() {
     if (editForm.empresa) data.empresa = editForm.empresa;
     if (editForm.cnpj) data.cnpj = editForm.cnpj;
     if (editForm.razao_social) data.razao_social = editForm.razao_social;
-    if (editForm.cliente) data.cliente = editForm.cliente;
+    if (editForm.data_assinatura_contrato) data.data_assinatura_contrato = editForm.data_assinatura_contrato;
     if (editForm.email_envio) data.email_envio = editForm.email_envio;
     if (editForm.inicio_cobranca) data.inicio_cobranca = editForm.inicio_cobranca;
     if (editForm.vencimento) data.vencimento = parseInt(editForm.vencimento);
@@ -108,7 +108,7 @@ export default function CompanyDetail() {
                   <InputEdit label="Empresa" value={editForm.empresa || ''} onChange={(v) => setEditForm({...editForm, empresa: v})} error={errors.empresa} />
                   <InputEdit label="CNPJ" value={editForm.cnpj || ''} onChange={(v) => setEditForm({...editForm, cnpj: v})} error={errors.cnpj} />
                   <InputEdit label="Razão Social" value={editForm.razao_social || ''} onChange={(v) => setEditForm({...editForm, razao_social: v})} />
-                  <InputEdit label="Cliente" value={editForm.cliente || ''} onChange={(v) => setEditForm({...editForm, cliente: v})} />
+                  <InputEdit label="Data Assinatura Contrato" type="date" value={editForm.data_assinatura_contrato || ''} onChange={(v) => setEditForm({...editForm, data_assinatura_contrato: v})} />
                   <InputEditMultiEmail label="E-mails" value={editForm.email_envio || ''} onChange={(v) => setEditForm({...editForm, email_envio: v})} error={errors.email_envio} />
                   <InputEdit label="Início Cobrança" type="date" value={editForm.inicio_cobranca || ''} onChange={(v) => setEditForm({...editForm, inicio_cobranca: v})} />
                   <InputEdit label="Dia Vencimento" type="number" value={editForm.vencimento || ''} onChange={(v) => setEditForm({...editForm, vencimento: v})} />
@@ -137,7 +137,7 @@ export default function CompanyDetail() {
                   <Field label="Company ID" value={company.company_id} />
                   <Field label="CNPJ" value={company.cnpj} />
                   <Field label="Razão Social" value={company.razao_social} />
-                  <Field label="Cliente" value={company.cliente} />
+                  <Field label="Data Assinatura Contrato" value={company.data_assinatura_contrato ? company.data_assinatura_contrato.slice(0, 10).split('-').reverse().join('/') : null} />
                   <Field label="E-mails para envio" value={company.email_envio} multiEmail />
                   <Field label="Início Cobrança" value={company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10).split('-').reverse().join('/') : null} />
                   <Field label="Dia de Vencimento" value={company.vencimento ? `Dia ${company.vencimento}` : null} />

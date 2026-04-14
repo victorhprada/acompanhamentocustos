@@ -49,9 +49,7 @@ def export_monthly_csv(
         ("elegiveis", "Elegíveis"),
         ("valor_elegivel", "Valor Elegível"),
         ("valor_final", "Valor Final"),
-        ("elegiveis_totalpass_gympass", "Elegíveis Totalpass/Gympass"),
         ("vidas_cobradas", "Vidas Cobradas"),
-        ("nr_vidas", "Nº Vidas"),
         ("valor_vidas", "Valor Vidas"),
         ("nr_cartao_contrato_flex", "Nº Cartão Contrato Flex"),
         ("nr_cartao_carga_flex", "Nº Cartão Carga Flex"),
@@ -62,7 +60,6 @@ def export_monthly_csv(
         ("faturamento_wiipo", "Faturamento Wiipo"),
         ("mensal_x_rentabilidade", "Mensal x Rentabilidade"),
         ("custo_por_cliente", "Custo por Cliente"),
-        ("valor_faturado", "Valor Faturado"),
         ("faturamento", "Faturamento"),
     ]
 

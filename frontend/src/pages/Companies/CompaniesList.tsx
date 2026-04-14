@@ -93,7 +93,6 @@ export default function CompaniesList() {
     return (
       c.empresa?.toLowerCase().includes(q) ||
       c.cnpj?.toLowerCase().includes(q) ||
-      c.cliente?.toLowerCase().includes(q) ||
       c.company_id?.toLowerCase().includes(q)
     );
   });
@@ -120,7 +119,7 @@ export default function CompaniesList() {
     empresa: '',
     cnpj: '',
     razao_social: '',
-    cliente: '',
+    data_assinatura_contrato: '',
     email_envio: '',
     inicio_cobranca: '',
     vencimento: '',
@@ -157,7 +156,7 @@ export default function CompaniesList() {
     setShowForm(false);
     setEditingId(null);
     setErrors({});
-    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', cliente: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '' });
+    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', data_assinatura_contrato: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '' });
   };
 
   const startEdit = (company: any) => {
@@ -169,7 +168,7 @@ export default function CompaniesList() {
       empresa: company.empresa || '',
       cnpj: company.cnpj || '',
       razao_social: company.razao_social || '',
-      cliente: company.cliente || '',
+      data_assinatura_contrato: company.data_assinatura_contrato ? company.data_assinatura_contrato.slice(0, 10) : '',
       email_envio: company.email_envio || '',
       inicio_cobranca: company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10) : '',
       vencimento: company.vencimento?.toString() || '',
@@ -229,7 +228,7 @@ export default function CompaniesList() {
     if (formData.empresa) data.empresa = formData.empresa;
     if (formData.cnpj) data.cnpj = formData.cnpj;
     if (formData.razao_social) data.razao_social = formData.razao_social;
-    if (formData.cliente) data.cliente = formData.cliente;
+    if (formData.data_assinatura_contrato) data.data_assinatura_contrato = formData.data_assinatura_contrato;
     if (formData.email_envio) data.email_envio = formData.email_envio;
     if (formData.inicio_cobranca) data.inicio_cobranca = formData.inicio_cobranca;
     if (formData.vencimento) data.vencimento = parseInt(formData.vencimento);
@@ -296,7 +295,7 @@ export default function CompaniesList() {
             <Input label="Empresa" value={formData.empresa} onChange={(v) => setFormData({ ...formData, empresa: v })} required error={errors.empresa} />
             <Input label="CNPJ" value={formData.cnpj} onChange={(v) => setFormData({ ...formData, cnpj: v })} required error={errors.cnpj} placeholder="00.000.000/0001-00" />
             <Input label="Razão Social" value={formData.razao_social} onChange={(v) => setFormData({ ...formData, razao_social: v })} error={errors.razao_social} />
-            <Input label="Cliente" value={formData.cliente} onChange={(v) => setFormData({ ...formData, cliente: v })} error={errors.cliente} />
+            <Input label="Data Assinatura Contrato" type="date" value={formData.data_assinatura_contrato} onChange={(v) => setFormData({ ...formData, data_assinatura_contrato: v })} error={errors.data_assinatura_contrato} />
             <MultiEmailInput value={formData.email_envio} onChange={(v) => setFormData({ ...formData, email_envio: v })} error={errors.email_envio} />
             <Input label="Início Cobrança" type="date" value={formData.inicio_cobranca} onChange={(v) => setFormData({ ...formData, inicio_cobranca: v })} error={errors.inicio_cobranca} />
             <Input label="Dia Vencimento" type="number" value={formData.vencimento} onChange={(v) => setFormData({ ...formData, vencimento: v })} placeholder="1-31" error={errors.vencimento} />
@@ -330,7 +329,7 @@ export default function CompaniesList() {
               type="text"
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              placeholder="Buscar por empresa, CNPJ, cliente ou ID..."
+              placeholder="Buscar por empresa, CNPJ ou ID..."
               className="w-full border rounded-lg pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
           </div>
@@ -357,7 +356,7 @@ export default function CompaniesList() {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empresa</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">CNPJ</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cliente</th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Assinatura</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Início</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
             </tr>
@@ -382,7 +381,7 @@ export default function CompaniesList() {
                   </Link>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-600">{company.cnpj}</td>
-                <td className="px-4 py-3 text-sm text-gray-600">{company.cliente || '-'}</td>
+                <td className="px-4 py-3 text-sm text-gray-600">{company.data_assinatura_contrato ? company.data_assinatura_contrato.slice(0, 10).split('-').reverse().join('/') : '-'}</td>
                 <td className="px-4 py-3 text-sm text-gray-600">{company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10).split('-').reverse().join('/') : '-'}</td>
                 <td className="px-4 py-3 text-sm">
                   <div className="flex gap-2">

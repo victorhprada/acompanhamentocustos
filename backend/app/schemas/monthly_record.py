@@ -11,11 +11,9 @@ class MonthlyRecordBase(BaseModel):
     elegiveis: Optional[float] = None
     valor_elegivel: Optional[float] = None
     valor_final: Optional[float] = None
-    elegiveis_totalpass_gympass: Optional[float] = None
 
     # Gympass/Totalpass
     vidas_cobradas: Optional[float] = None
-    nr_vidas: Optional[float] = None
     valor_vidas: Optional[float] = None
 
     # Flex
@@ -32,7 +30,6 @@ class MonthlyRecordBase(BaseModel):
     # Financeiro
     mensal_x_rentabilidade: Optional[str] = Field(None, max_length=100)
     custo_por_cliente: Optional[float] = None
-    valor_faturado: Optional[float] = None
     faturamento: Optional[float] = None
 
 
@@ -45,9 +42,7 @@ class MonthlyRecordUpdate(BaseModel):
     elegiveis: Optional[float] = None
     valor_elegivel: Optional[float] = None
     valor_final: Optional[float] = None
-    elegiveis_totalpass_gympass: Optional[float] = None
     vidas_cobradas: Optional[float] = None
-    nr_vidas: Optional[float] = None
     valor_vidas: Optional[float] = None
     nr_cartao_contrato_flex: Optional[float] = None
     nr_cartao_carga_flex: Optional[float] = None
@@ -58,7 +53,6 @@ class MonthlyRecordUpdate(BaseModel):
     faturamento_wiipo: Optional[float] = None
     mensal_x_rentabilidade: Optional[str] = Field(None, max_length=100)
     custo_por_cliente: Optional[float] = None
-    valor_faturado: Optional[float] = None
     faturamento: Optional[float] = None
 
 

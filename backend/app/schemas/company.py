@@ -8,7 +8,7 @@ class CompanyBase(BaseModel):
     empresa: str = Field(..., min_length=1, max_length=255)
     cnpj: str = Field(..., max_length=18)
     razao_social: Optional[str] = Field(None, max_length=255)
-    cliente: Optional[str] = Field(None, max_length=255)
+    data_assinatura_contrato: Optional[date] = None
     email_envio: Optional[str] = Field(None, max_length=255)
     inicio_cobranca: Optional[date] = None
     vencimento: Optional[int] = Field(None, ge=1, le=31)
@@ -23,7 +23,7 @@ class CompanyUpdate(BaseModel):
     empresa: Optional[str] = Field(None, max_length=255)
     cnpj: Optional[str] = Field(None, max_length=18)
     razao_social: Optional[str] = Field(None, max_length=255)
-    cliente: Optional[str] = Field(None, max_length=255)
+    data_assinatura_contrato: Optional[date] = None
     email_envio: Optional[str] = Field(None, max_length=255)
     inicio_cobranca: Optional[date] = None
     vencimento: Optional[int] = Field(None, ge=1, le=31)

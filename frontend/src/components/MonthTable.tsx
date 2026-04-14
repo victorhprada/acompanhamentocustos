@@ -16,11 +16,9 @@ const COLUMN_GROUPS = {
     { key: 'elegiveis', label: 'Elegíveis', type: 'number' },
     { key: 'valor_elegivel', label: 'Valor Elegível', type: 'money' },
     { key: 'valor_final', label: 'Valor Final', type: 'money' },
-    { key: 'elegiveis_totalpass_gympass', label: 'Elegíveis Total/Gympass', type: 'number' },
   ],
   'Gympass/Totalpass': [
     { key: 'vidas_cobradas', label: 'Vidas Cobradas', type: 'number' },
-    { key: 'nr_vidas', label: 'Nº Vidas', type: 'number' },
     { key: 'valor_vidas', label: 'Valor Vidas', type: 'money' },
   ],
   'Flex': [
@@ -37,7 +35,6 @@ const COLUMN_GROUPS = {
   'Financeiro': [
     { key: 'mensal_x_rentabilidade', label: 'Mensal x Rentabilidade', type: 'text' },
     { key: 'custo_por_cliente', label: 'Custo por Cliente', type: 'money' },
-    { key: 'valor_faturado', label: 'Valor Faturado', type: 'money' },
     { key: 'faturamento', label: 'Faturamento', type: 'money' },
   ],
 };

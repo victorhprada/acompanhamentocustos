@@ -4,7 +4,7 @@ export interface Company {
   empresa: string;
   cnpj: string;
   razao_social?: string;
-  cliente?: string;
+  data_assinatura_contrato?: string;
   email_envio?: string;
   inicio_cobranca?: string;
   vencimento?: number;
@@ -22,9 +22,7 @@ export interface MonthlyRecord {
   elegiveis?: number;
   valor_elegivel?: number;
   valor_final?: number;
-  elegiveis_totalpass_gympass?: number;
   vidas_cobradas?: number;
-  nr_vidas?: number;
   valor_vidas?: number;
   nr_cartao_contrato_flex?: number;
   nr_cartao_carga_flex?: number;
@@ -35,7 +33,6 @@ export interface MonthlyRecord {
   faturamento_wiipo?: number;
   mensal_x_rentabilidade?: string;
   custo_por_cliente?: number;
-  valor_faturado?: number;
   faturamento?: number;
   created_at: string;
   updated_at: string;
