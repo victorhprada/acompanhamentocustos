@@ -7,6 +7,7 @@ import CompanyDetail from './pages/Companies/CompanyDetail';
 import Login from './pages/Login';
 import AuditLog from './pages/AuditLog';
 import ExportModal from './components/ExportModal';
+import { getDashboard } from './services/api';
 import { supabase } from './lib/supabase';
 
 const queryClient = new QueryClient();
@@ -280,21 +281,11 @@ function Dashboard() {
   );
 
   useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
-        const res = await fetch(`${API_BASE}/dashboard?mes_ano=${selectedMonth}`);
-        if (res.ok) {
-          const data = await res.json();
-          setKpis(data);
-        }
-      } catch (e) {
-        console.error('Failed to fetch dashboard:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchDashboard();
+    setLoading(true);
+    getDashboard(selectedMonth)
+      .then(data => setKpis(data))
+      .catch(e => console.error('Failed to fetch dashboard:', e))
+      .finally(() => setLoading(false));
   }, [selectedMonth]);
 
   const formatMoney = (val: number) => {
@@ -353,16 +344,11 @@ function Dashboard() {
           </div>
 
           {/* KPIs */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <KPICard
-              title="Total Elegíveis Totalpass/Gympass"
-              value={formatNumber(kpis.kpis?.total_elegiveis_totalpass_gympass)}
+              title="Total Vidas Cobradas"
+              value={formatNumber(kpis.kpis?.total_vidas_cobradas)}
               icon="👥"
-            />
-            <KPICard
-              title="Total Nº Vidas"
-              value={formatNumber(kpis.kpis?.total_nr_vidas)}
-              icon="❤️"
             />
             <KPICard
               title="Total Valor Vidas"
@@ -375,8 +361,8 @@ function Dashboard() {
               icon="📊"
             />
             <KPICard
-              title="Total Valor Faturado"
-              value={formatMoney(kpis.kpis?.total_valor_faturado)}
+              title="Total Faturamento"
+              value={formatMoney(kpis.kpis?.total_faturamento)}
               icon="💵"
             />
           </div>

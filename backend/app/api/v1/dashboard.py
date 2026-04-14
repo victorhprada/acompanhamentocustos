@@ -19,11 +19,10 @@ def get_dashboard(
 ):
     """Get dashboard KPIs aggregated by month."""
     query = supabase.table("monthly_records").select(
-        "elegiveis_totalpass_gympass,"
-        "nr_vidas,"
+        "vidas_cobradas,"
         "valor_vidas,"
         "custo_por_cliente,"
-        "valor_faturado,"
+        "faturamento,"
         "mes_ano"
     )
 
@@ -35,18 +34,16 @@ def get_dashboard(
     records = result.data or []
 
     # Aggregate KPIs
-    total_elegiveis_totalpass_gympass = 0
-    total_nr_vidas = 0
+    total_vidas_cobradas = 0
     total_valor_vidas = 0.0
     total_custo_por_cliente = 0.0
-    total_valor_faturado = 0.0
+    total_faturamento = 0.0
 
     for rec in records:
-        total_elegiveis_totalpass_gympass += rec.get("elegiveis_totalpass_gympass") or 0
-        total_nr_vidas += rec.get("nr_vidas") or 0
+        total_vidas_cobradas += rec.get("vidas_cobradas") or 0
         total_valor_vidas += rec.get("valor_vidas") or 0
         total_custo_por_cliente += rec.get("custo_por_cliente") or 0
-        total_valor_faturado += rec.get("valor_faturado") or 0
+        total_faturamento += rec.get("faturamento") or 0
 
     # Get active companies count
     companies_query = supabase.table("companies").select("id").eq("is_active", True)
@@ -63,10 +60,9 @@ def get_dashboard(
         "total_empresas_inativas": total_empresas_inativas,
         "total_registros": len(records),
         "kpis": {
-            "total_elegiveis_totalpass_gympass": int(total_elegiveis_totalpass_gympass),
-            "total_nr_vidas": int(total_nr_vidas),
+            "total_vidas_cobradas": int(total_vidas_cobradas),
             "total_valor_vidas": round(total_valor_vidas, 2),
             "total_custo_por_cliente": round(total_custo_por_cliente, 2),
-            "total_valor_faturado": round(total_valor_faturado, 2),
+            "total_faturamento": round(total_faturamento, 2),
         },
     }

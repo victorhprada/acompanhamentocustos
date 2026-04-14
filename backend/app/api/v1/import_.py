@@ -17,17 +17,17 @@ HEADER_ROW = 8
 BUCKET = "imports"
 
 COMPANY_FIELDS = {
-    "company_id", "empresa", "cnpj", "razao_social", "cliente",
+    "company_id", "empresa", "cnpj", "razao_social", "data_assinatura_contrato",
     "email_envio", "inicio_cobranca", "vencimento", "nota_fiscal_descricao",
 }
 
 MONTHLY_FIELDS = {
     "elegiveis_contrato", "elegiveis", "valor_elegivel", "valor_final",
-    "elegiveis_totalpass_gympass", "vidas_cobradas", "nr_vidas", "valor_vidas",
+    "vidas_cobradas", "valor_vidas",
     "nr_cartao_contrato_flex", "nr_cartao_carga_flex", "rs_carregado",
     "media_cartao_realizado", "media_contratada", "valor_elegivel_wiipo",
     "faturamento_wiipo", "mensal_x_rentabilidade", "custo_por_cliente",
-    "valor_faturado", "faturamento",
+    "faturamento",
 }
 
 NUMERIC_MONTHLY_FIELDS = MONTHLY_FIELDS - {"mensal_x_rentabilidade"}

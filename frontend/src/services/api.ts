@@ -75,11 +75,28 @@ export const updateMonthlyRecord = (id: string, data: Partial<MonthlyRecord>, pr
 export const deleteMonthlyRecord = (id: string, propagate = true) =>
   fetchApi<void>(`/monthly/${id}?propagate=${propagate}`, { method: 'DELETE' });
 
+// Dashboard
+export const getDashboard = (mesAno: string) =>
+  fetchApi<any>(`/dashboard?mes_ano=${mesAno}`);
+
 // Import
 export const uploadImportFile = async (file: File) => {
+  const sessionResult = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Auth session timeout')), 5000)
+    ),
+  ]);
+  const token = sessionResult.data.session?.access_token;
+
   const form = new FormData();
   form.append('file', file);
-  const response = await fetch(`${API_BASE}/import/upload`, { method: 'POST', body: form });
+  const response = await fetch(`${API_BASE}/import/upload`, {
+    method: 'POST',
+    body: form,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (response.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
   if (!response.ok) throw new Error(`API error: ${response.status}`);
   return response.json() as Promise<{
     file_path: string;
