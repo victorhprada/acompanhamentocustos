@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from supabase import create_client, Client
 from app.config import settings
+from app.deps import verify_token
 from typing import Optional, List
 
 router = APIRouter()
@@ -17,6 +18,7 @@ def list_audit_logs(
     action: Optional[str] = Query(None, description="Filter by action (INSERT/UPDATE/DELETE)"),
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     """List audit log entries with optional filters and pagination."""
@@ -56,6 +58,7 @@ def list_audit_logs(
 @router.get("/audit-logs/{log_id}")
 def get_audit_log(
     log_id: str,
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     """Get a single audit log entry."""

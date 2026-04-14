@@ -3,6 +3,7 @@ import io
 from fastapi import APIRouter, Depends, Query, Response
 from supabase import create_client, Client
 from app.config import settings
+from app.deps import verify_token
 from typing import Optional
 
 router = APIRouter()
@@ -15,6 +16,7 @@ def get_supabase():
 @router.get("/export/monthly")
 def export_monthly_csv(
     mes_ano: Optional[str] = Query(None, description="Filter by month (YYYY-MM-DD)"),
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     """Export monthly records as CSV."""

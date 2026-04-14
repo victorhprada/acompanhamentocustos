@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from supabase import create_client, Client
 from app.config import settings
+from app.deps import verify_token
 from app.schemas.company import CompanyCreate, CompanyUpdate, Company
 from typing import List
 
@@ -12,7 +13,11 @@ def get_supabase():
 
 
 @router.get("/companies", response_model=List[Company])
-def list_companies(active_only: bool = True, supabase: Client = Depends(get_supabase)):
+def list_companies(
+    active_only: bool = True,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     query = supabase.table("companies").select("*")
     if active_only:
         query = query.eq("is_active", True)
@@ -21,7 +26,11 @@ def list_companies(active_only: bool = True, supabase: Client = Depends(get_supa
 
 
 @router.get("/companies/{company_id}", response_model=Company)
-def get_company(company_id: str, supabase: Client = Depends(get_supabase)):
+def get_company(
+    company_id: str,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     result = supabase.table("companies").select("*").eq("id", company_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -29,7 +38,11 @@ def get_company(company_id: str, supabase: Client = Depends(get_supabase)):
 
 
 @router.post("/companies", response_model=Company, status_code=status.HTTP_201_CREATED)
-def create_company(company: CompanyCreate, supabase: Client = Depends(get_supabase)):
+def create_company(
+    company: CompanyCreate,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     # Check for duplicate company_id
     existing = supabase.table("companies").select("id").eq("company_id", company.company_id).execute()
     if existing.data:
@@ -47,7 +60,12 @@ def create_company(company: CompanyCreate, supabase: Client = Depends(get_supaba
 
 
 @router.put("/companies/{company_id}", response_model=Company)
-def update_company(company_id: str, company: CompanyUpdate, supabase: Client = Depends(get_supabase)):
+def update_company(
+    company_id: str,
+    company: CompanyUpdate,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     # Check if company exists
     existing = supabase.table("companies").select("id").eq("id", company_id).execute()
     if not existing.data:
@@ -67,7 +85,11 @@ def update_company(company_id: str, company: CompanyUpdate, supabase: Client = D
 
 
 @router.post("/companies/{company_id}/deactivate", response_model=Company)
-def deactivate_company(company_id: str, supabase: Client = Depends(get_supabase)):
+def deactivate_company(
+    company_id: str,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     existing = supabase.table("companies").select("*").eq("id", company_id).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Company not found")
@@ -79,7 +101,11 @@ def deactivate_company(company_id: str, supabase: Client = Depends(get_supabase)
 
 
 @router.delete("/companies/{company_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_company(company_id: str, supabase: Client = Depends(get_supabase)):
+def delete_company(
+    company_id: str,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     existing = supabase.table("companies").select("id").eq("id", company_id).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Company not found")

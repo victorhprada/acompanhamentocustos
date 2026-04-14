@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from supabase import create_client, Client
 from app.config import settings
+from app.deps import verify_token
 from typing import Optional
 
 router = APIRouter()
@@ -13,6 +14,7 @@ def get_supabase():
 @router.get("/dashboard")
 def get_dashboard(
     mes_ano: Optional[str] = Query(None, description="Filter by month (YYYY-MM-DD)"),
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     """Get dashboard KPIs aggregated by month."""

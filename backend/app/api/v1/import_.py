@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from supabase import create_client, Client
 
 from app.config import settings
+from app.deps import verify_token
 
 router = APIRouter()
 
@@ -221,6 +222,7 @@ def extract_sheet_meta(ws) -> dict:
 @router.post("/import/upload")
 def upload_import_file(
     file: UploadFile = File(...),
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     if not (file.filename or "").lower().endswith((".xlsx", ".xls")):
@@ -276,7 +278,11 @@ def _propagate_records(supabase: Client, company_db_id: str, mes_ano: str, month
 
 
 @router.post("/import/process")
-def process_import(body: dict, supabase: Client = Depends(get_supabase)):
+def process_import(
+    body: dict,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     file_path: str = body.get("file_path", "")
     mapping: dict = body.get("mapping", {})        # excel_label → system_field | "_skip"
     sheets_cfg: list = body.get("sheets", [])       # [{ name, mes_ano, include }]

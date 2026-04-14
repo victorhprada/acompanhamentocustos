@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from supabase import create_client, Client
 from app.config import settings
+from app.deps import verify_token
 from app.schemas.monthly_record import MonthlyRecordCreate, MonthlyRecordUpdate, MonthlyRecord
 from typing import List, Optional
 from datetime import date
@@ -26,6 +27,7 @@ def get_future_months(mes_ano: str) -> list[str]:
 def list_monthly_records(
     company_id: Optional[str] = None,
     mes_ano: Optional[str] = None,
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     query = supabase.table("monthly_records").select("*")
@@ -38,7 +40,11 @@ def list_monthly_records(
 
 
 @router.get("/monthly/{record_id}", response_model=MonthlyRecord)
-def get_monthly_record(record_id: str, supabase: Client = Depends(get_supabase)):
+def get_monthly_record(
+    record_id: str,
+    _user=Depends(verify_token),
+    supabase: Client = Depends(get_supabase),
+):
     result = supabase.table("monthly_records").select("*").eq("id", record_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Monthly record not found")
@@ -49,6 +55,7 @@ def get_monthly_record(record_id: str, supabase: Client = Depends(get_supabase))
 def get_company_monthly(
     company_id: str,
     mes_ano: Optional[str] = None,
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     query = supabase.table("monthly_records").select("*").eq("company_id", company_id)
@@ -62,6 +69,7 @@ def get_company_monthly(
 def create_monthly_record(
     record: MonthlyRecordCreate,
     propagate: bool = Query(True),
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     existing = (
@@ -102,6 +110,7 @@ def update_monthly_record(
     record_id: str,
     record: MonthlyRecordUpdate,
     propagate: bool = Query(True),
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     existing = supabase.table("monthly_records").select("*").eq("id", record_id).execute()
@@ -139,6 +148,7 @@ def update_monthly_record(
 def delete_monthly_record(
     record_id: str,
     propagate: bool = Query(True),
+    _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
     existing = supabase.table("monthly_records").select("*").eq("id", record_id).execute()
