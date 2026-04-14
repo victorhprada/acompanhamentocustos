@@ -96,9 +96,12 @@ def _friendly_error(exc: Exception, label: str) -> str:
 
 def ensure_bucket(supabase: Client) -> None:
     try:
+        buckets = supabase.storage.list_buckets()
+        if any(b.name == BUCKET for b in buckets):
+            return  # already exists
         supabase.storage.create_bucket(BUCKET, options={"public": False})
     except Exception:
-        pass  # already exists
+        pass  # ignore — create_bucket will be tried on next request
 
 
 def detect_month(sheet_name: str) -> Optional[str]:
