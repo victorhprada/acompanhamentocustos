@@ -3,39 +3,59 @@ import { supabase } from '../lib/supabase';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
-async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  // Get current session token with a 5s timeout to prevent hanging on refresh races
-  const sessionResult = await Promise.race([
-    supabase.auth.getSession(),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Auth session timeout')), 5000)
-    ),
-  ]);
-  const token = sessionResult.data.session?.access_token;
+// ─── Token cache ──────────────────────────────────────────────────────────────
+// Kept in sync via onAuthStateChange so fetchApi never needs to call getSession()
+// at request time — which races with the Supabase lock bypass and can return null
+// immediately after a page reload before the session is restored in memory.
+let _token: string | null = null;
 
-  const headers: Record<string, any> = { 
+supabase.auth.onAuthStateChange((_event, session) => {
+  _token = session?.access_token ?? null;
+});
+
+// One-time bootstrap: if the module loads before onAuthStateChange fires (e.g.
+// during the very first render) try to read the session from storage directly.
+supabase.auth.getSession().then(({ data }) => {
+  if (data.session?.access_token && !_token) {
+    _token = data.session.access_token;
+  }
+});
+
+async function getToken(): Promise<string | null> {
+  if (_token) return _token;
+  // Last-resort fallback: session might still be loading
+  try {
+    const { data } = await supabase.auth.getSession();
+    _token = data.session?.access_token ?? null;
+  } catch {
+    // proceed without token; backend will 401 and we redirect to login
+  }
+  return _token;
+}
+
+// ─── Core fetch helper ────────────────────────────────────────────────────────
+async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+  const token = await getToken();
+
+  const headers: Record<string, any> = {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options?.headers || {}),
   };
 
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers,
-    ...options,
-  });
-  
+  const response = await fetch(`${API_BASE}${path}`, { headers, ...options });
+
   if (response.status === 401) {
-    // Session expired - redirect to login
     window.location.href = '/login';
     throw new Error('Unauthorized');
   }
-  
+
   if (!response.ok) throw new Error(`API error: ${response.status}`);
   if (response.status === 204) return null as T;
   return response.json();
 }
 
-// Companies
+// ─── Companies ────────────────────────────────────────────────────────────────
 export const getCompanies = (activeOnly = true) =>
   fetchApi<Company[]>(`/companies?active_only=${activeOnly}`);
 
@@ -57,7 +77,7 @@ export const activateCompany = (id: string) =>
 export const deleteCompany = (id: string) =>
   fetchApi<void>(`/companies/${id}`, { method: 'DELETE' });
 
-// Monthly Records
+// ─── Monthly Records ──────────────────────────────────────────────────────────
 export const getMonthlyRecords = (companyId: string, mesAno?: string) => {
   const params = mesAno ? `?mes_ano=${mesAno}` : '';
   return fetchApi<MonthlyRecord[]>(`/companies/${companyId}/monthly${params}`);
@@ -75,29 +95,25 @@ export const updateMonthlyRecord = (id: string, data: Partial<MonthlyRecord>, pr
 export const deleteMonthlyRecord = (id: string, propagate = true) =>
   fetchApi<void>(`/monthly/${id}?propagate=${propagate}`, { method: 'DELETE' });
 
-// Dashboard
+// ─── Dashboard ────────────────────────────────────────────────────────────────
 export const getDashboard = (mesAno: string) =>
   fetchApi<any>(`/dashboard?mes_ano=${mesAno}`);
 
-// Import
+// ─── Import ───────────────────────────────────────────────────────────────────
 export const uploadImportFile = async (file: File) => {
-  const sessionResult = await Promise.race([
-    supabase.auth.getSession(),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Auth session timeout')), 5000)
-    ),
-  ]);
-  const token = sessionResult.data.session?.access_token;
-
+  const token = await getToken();
   const form = new FormData();
   form.append('file', file);
+
   const response = await fetch(`${API_BASE}/import/upload`, {
     method: 'POST',
     body: form,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
+
   if (response.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
   if (!response.ok) throw new Error(`API error: ${response.status}`);
+
   return response.json() as Promise<{
     file_path: string;
     sheets: Array<{
@@ -109,15 +125,21 @@ export const uploadImportFile = async (file: File) => {
   }>;
 };
 
-export const exportMonthlyXlsx = async (mesAno: string, columns: string[]) => {
-  const sessionResult = await Promise.race([
-    supabase.auth.getSession(),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Auth session timeout')), 5000)
-    ),
-  ]);
-  const token = sessionResult.data.session?.access_token;
+export const processImport = (body: {
+  file_path: string;
+  mapping: Record<string, string>;
+  sheets: Array<{ name: string; mes_ano: string; include: boolean }>;
+  propagate?: boolean;
+  propagate_mes_ano?: string;
+}, signal?: AbortSignal) =>
+  fetchApi<{ companies_created: number; companies_updated: number; records_created: number; records_updated: number; errors: string[] }>(
+    '/import/process',
+    { method: 'POST', body: JSON.stringify(body), signal },
+  );
 
+// ─── Export ───────────────────────────────────────────────────────────────────
+export const exportMonthlyXlsx = async (mesAno: string, columns: string[]) => {
+  const token = await getToken();
   const params = new URLSearchParams({ mes_ano: mesAno });
   if (columns.length) params.set('columns', columns.join(','));
 
@@ -138,15 +160,3 @@ export const exportMonthlyXlsx = async (mesAno: string, columns: string[]) => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
-
-export const processImport = (body: {
-  file_path: string;
-  mapping: Record<string, string>;
-  sheets: Array<{ name: string; mes_ano: string; include: boolean }>;
-  propagate?: boolean;
-  propagate_mes_ano?: string;
-}, signal?: AbortSignal) =>
-  fetchApi<{ companies_created: number; companies_updated: number; records_created: number; records_updated: number; errors: string[] }>(
-    '/import/process',
-    { method: 'POST', body: JSON.stringify(body), signal },
-  );
