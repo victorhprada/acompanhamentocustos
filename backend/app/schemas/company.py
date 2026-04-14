@@ -13,6 +13,7 @@ class CompanyBase(BaseModel):
     inicio_cobranca: Optional[date] = None
     vencimento: Optional[int] = Field(None, ge=1, le=31)
     nota_fiscal_descricao: Optional[str] = None
+    subsidio: Optional[bool] = None
 
 
 class CompanyCreate(CompanyBase):
@@ -28,6 +29,7 @@ class CompanyUpdate(BaseModel):
     inicio_cobranca: Optional[date] = None
     vencimento: Optional[int] = Field(None, ge=1, le=31)
     nota_fiscal_descricao: Optional[str] = None
+    subsidio: Optional[bool] = None
     is_active: Optional[bool] = None
 
 

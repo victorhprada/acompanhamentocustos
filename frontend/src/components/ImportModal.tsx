@@ -12,6 +12,7 @@ const COMPANY_FIELD_OPTIONS = [
   { value: 'inicio_cobranca', label: 'Início Cobrança' },
   { value: 'vencimento', label: 'Vencimento' },
   { value: 'nota_fiscal_descricao', label: 'Descrição Nota Fiscal' },
+  { value: 'subsidio', label: 'Subsídio' },
 ];
 
 const MONTHLY_FIELD_OPTIONS = [
@@ -72,6 +73,8 @@ const KNOWN_MAPPINGS: Record<string, string> = {
   'incluir esta descrição na nota fiscal': 'nota_fiscal_descricao',
   'e-mail para envio': 'email_envio',
   'email para envio': 'email_envio',
+  'subsidio': 'subsidio',
+  'subsídio': 'subsidio',
 };
 
 function autoMap(label: string): string {

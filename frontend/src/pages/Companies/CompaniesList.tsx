@@ -124,6 +124,7 @@ export default function CompaniesList() {
     inicio_cobranca: '',
     vencimento: '',
     nota_fiscal_descricao: '',
+    subsidio: false,
   });
 
   const createMutation = useMutation({
@@ -156,7 +157,7 @@ export default function CompaniesList() {
     setShowForm(false);
     setEditingId(null);
     setErrors({});
-    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', data_assinatura_contrato: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '' });
+    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', data_assinatura_contrato: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '', subsidio: false });
   };
 
   const startEdit = (company: any) => {
@@ -173,6 +174,7 @@ export default function CompaniesList() {
       inicio_cobranca: company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10) : '',
       vencimento: company.vencimento?.toString() || '',
       nota_fiscal_descricao: company.nota_fiscal_descricao || '',
+      subsidio: company.subsidio ?? false,
     });
   };
 
@@ -233,6 +235,7 @@ export default function CompaniesList() {
     if (formData.inicio_cobranca) data.inicio_cobranca = formData.inicio_cobranca;
     if (formData.vencimento) data.vencimento = parseInt(formData.vencimento);
     if (formData.nota_fiscal_descricao) data.nota_fiscal_descricao = formData.nota_fiscal_descricao;
+    data.subsidio = formData.subsidio;
 
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
@@ -309,6 +312,18 @@ export default function CompaniesList() {
               className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none ${errors.nota_fiscal_descricao ? 'border-red-300 bg-red-50' : ''}`}
             />
             {errors.nota_fiscal_descricao && <p className="text-red-600 text-xs mt-1">{errors.nota_fiscal_descricao}</p>}
+          </div>
+          <div className="mt-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={formData.subsidio}
+                onChange={(e) => setFormData({ ...formData, subsidio: e.target.checked })}
+                className="rounded border-gray-300 text-blue-600"
+              />
+              <span className="text-sm font-medium text-gray-700">Subsídio</span>
+              <span className="text-xs text-gray-400">(empresa possui subsídio no cartão)</span>
+            </label>
           </div>
           <button
             type="submit"

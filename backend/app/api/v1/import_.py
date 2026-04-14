@@ -18,7 +18,7 @@ BUCKET = "imports"
 
 COMPANY_FIELDS = {
     "company_id", "empresa", "cnpj", "razao_social", "data_assinatura_contrato",
-    "email_envio", "inicio_cobranca", "vencimento", "nota_fiscal_descricao",
+    "email_envio", "inicio_cobranca", "vencimento", "nota_fiscal_descricao", "subsidio",
 }
 
 MONTHLY_FIELDS = {
@@ -179,6 +179,8 @@ def parse_cell(value, system_field: str):
     if raw in ("", "None", "nan", "-"):
         return None
 
+    if system_field == "subsidio":
+        return raw.lower() in ("true", "sim", "yes", "1", "s")
     if system_field in NUMERIC_MONTHLY_FIELDS:
         return parse_currency(value)
     if system_field == "inicio_cobranca":

@@ -9,6 +9,7 @@ export interface Company {
   inicio_cobranca?: string;
   vencimento?: number;
   nota_fiscal_descricao?: string;
+  subsidio?: boolean;
   is_active: boolean;
   created_at: string;
   updated_at: string;
