@@ -1,13 +1,16 @@
 from behave import given, when, then
 import requests
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from environment import get_auth_headers
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
 
 @when('I retrieve the audit logs')
 def step_retrieve_audit_logs(context):
-    response = requests.get(f"{API_BASE_URL}/audit-logs")
+    response = requests.get(f"{API_BASE_URL}/audit-logs", headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code
     try:
@@ -39,7 +42,7 @@ def step_audit_logs_multiple_tables(context):
 
 @when('I filter audit logs by table "{table_name}"')
 def step_filter_audit_by_table(context, table_name):
-    response = requests.get(f"{API_BASE_URL}/audit-logs", params={"table_name": table_name})
+    response = requests.get(f"{API_BASE_URL}/audit-logs", params={"table_name": table_name}, headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code
     try:
@@ -59,7 +62,7 @@ def step_see_only_company_logs(context):
 
 @when('I filter audit logs by action "{action}"')
 def step_filter_audit_by_action(context, action):
-    response = requests.get(f"{API_BASE_URL}/audit-logs", params={"action": action})
+    response = requests.get(f"{API_BASE_URL}/audit-logs", params={"action": action}, headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code
     try:
@@ -79,7 +82,7 @@ def step_see_only_insert_logs(context):
 @given('an audit log entry exists')
 def step_audit_log_entry_exists(context):
     # Fetch any existing log entry
-    response = requests.get(f"{API_BASE_URL}/audit-logs", params={"limit": 1})
+    response = requests.get(f"{API_BASE_URL}/audit-logs", params={"limit": 1}, headers=get_auth_headers(context))
     if response.status_code == 200 and response.json().get("items"):
         context.audit_log_id = response.json()["items"][0]["id"]
     else:
@@ -89,7 +92,7 @@ def step_audit_log_entry_exists(context):
 @when('I retrieve the audit log detail')
 def step_retrieve_audit_log_detail(context):
     if context.audit_log_id:
-        response = requests.get(f"{API_BASE_URL}/audit-logs/{context.audit_log_id}")
+        response = requests.get(f"{API_BASE_URL}/audit-logs/{context.audit_log_id}", headers=get_auth_headers(context))
         context.last_response = response
         context.last_response_status = response.status_code
         try:
@@ -116,6 +119,6 @@ def step_audit_operation_denied(context):
 @when('I try to retrieve audit logs')
 def step_try_retrieve_audit_logs(context):
     context.user_role = getattr(context, 'user_role', 'viewer')
-    response = requests.get(f"{API_BASE_URL}/audit-logs")
+    response = requests.get(f"{API_BASE_URL}/audit-logs", headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code

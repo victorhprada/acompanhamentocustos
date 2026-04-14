@@ -1,13 +1,16 @@
 from behave import given, when, then
 import requests
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from environment import get_auth_headers
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
 
 @when('I retrieve the dashboard data')
 def step_retrieve_dashboard(context):
-    response = requests.get(f"{API_BASE_URL}/dashboard")
+    response = requests.get(f"{API_BASE_URL}/dashboard", headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code
     try:
@@ -18,7 +21,7 @@ def step_retrieve_dashboard(context):
 
 @when('I retrieve the dashboard for month "{mes_ano}"')
 def step_retrieve_dashboard_month(context, mes_ano):
-    response = requests.get(f"{API_BASE_URL}/dashboard", params={"mes_ano": mes_ano})
+    response = requests.get(f"{API_BASE_URL}/dashboard", params={"mes_ano": mes_ano}, headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code
     try:
@@ -64,7 +67,7 @@ def step_see_kpis_jan_2026(context):
 
 @when('I export records for month "{mes_ano}"')
 def step_export_month_csv(context, mes_ano):
-    response = requests.get(f"{API_BASE_URL}/export/monthly", params={"mes_ano": mes_ano})
+    response = requests.get(f"{API_BASE_URL}/export/monthly", params={"mes_ano": mes_ano}, headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code
     context.last_content = response.text
@@ -72,7 +75,7 @@ def step_export_month_csv(context, mes_ano):
 
 @when('I export all records')
 def step_export_all_csv(context):
-    response = requests.get(f"{API_BASE_URL}/export/monthly")
+    response = requests.get(f"{API_BASE_URL}/export/monthly", headers=get_auth_headers(context))
     context.last_response = response
     context.last_response_status = response.status_code
     context.last_content = response.text

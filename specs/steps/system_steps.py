@@ -51,21 +51,21 @@ def step_users_exist(context):
 
 @given('I am logged in')
 def step_logged_in(context):
-    # Default login as analyst
     context.user_role = "analyst"
-    context.auth_token = "mock-token"
     context.user_email = "analyst@test.com"
+    context.auth_token = getattr(context, "tokens", {}).get("analyst", "")
 
 @given('I am logged in as "{role}"')
 def step_logged_in_as(context, role):
     context.user_role = role
-    context.auth_token = "mock-token"
     context.user_email = f"{role}@test.com"
+    context.auth_token = getattr(context, "tokens", {}).get(role, "")
 
 @given('a user is authenticated')
 def step_user_authenticated(context):
     context.user_role = "viewer"
-    context.auth_token = "mock-token"
+    context.user_email = "viewer@test.com"
+    context.auth_token = getattr(context, "tokens", {}).get("viewer", "")
 
 @given('an unauthenticated user')
 def step_unauthenticated_user(context):
@@ -217,7 +217,13 @@ def step_role_performs_operation(context, role):
 
 @when('they attempt to access any protected resource')
 def step_access_protected_resource(context):
-    context.action_allowed = False
+    try:
+        response = requests.get(f"{API_BASE_URL}/companies")
+        context.last_status = response.status_code
+        context.action_allowed = response.status_code != 401
+    except Exception:
+        context.last_status = 0
+        context.action_allowed = False
 
 # Then steps
 
@@ -292,7 +298,11 @@ def step_operation_allowed(context):
 
 @then('they receive a 401 Unauthorized response')
 def step_unauthorized_response(context):
-    assert context.action_allowed == False
+    status = getattr(context, 'last_status', None)
+    if status is not None:
+        assert status == 401, f"Expected 401, got {status}"
+    else:
+        assert not getattr(context, 'action_allowed', True)
 
 @then('an audit log entry is created')
 def step_audit_log_created(context):

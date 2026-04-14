@@ -1,6 +1,9 @@
 from behave import given, when, then
 import requests
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from environment import get_auth_headers
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
@@ -24,32 +27,26 @@ def step_cost_centers_exist(context):
 
 @given('a company exists')
 def step_company_exists_generic(context):
-    import requests
     import time
-    import os
-    API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
     suffix = str(int(time.time()))[-4:]
     company_data = {
         "company_id": f"TEST-{suffix}",
         "empresa": f"Test Company {suffix}",
         "cnpj": f"99.999.999/{suffix}-01",
     }
-    response = requests.post(f"{API_BASE}/companies", json=company_data)
+    response = requests.post(f"{API_BASE_URL}/companies", json=company_data, headers=get_auth_headers(context))
     if response.status_code in [200, 201]:
         context.target_company = response.json()
         context.target_company_uuid = response.json().get("id")
 
 @when('I view the company details')
 def step_view_company_details(context):
-    import requests
-    import os
-    API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
     uuid = getattr(context, 'target_company_uuid', None)
     if not uuid and hasattr(context, 'target_company'):
         uuid = context.target_company.get("id")
-    
+
     if uuid:
-        response = requests.get(f"{API_BASE}/companies/{uuid}")
+        response = requests.get(f"{API_BASE_URL}/companies/{uuid}", headers=get_auth_headers(context))
         context.last_response = response
         context.last_response_status = response.status_code
         try:

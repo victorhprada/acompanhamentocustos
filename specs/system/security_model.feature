@@ -12,7 +12,7 @@ Feature: Security Model
     When an "admin" performs any operation
     Then the operation is allowed
 
-  Scenario: Authentication is required for all operations
+  Scenario: Unauthenticated request is rejected by the API
     Given an unauthenticated user
     When they attempt to access any protected resource
     Then they receive a 401 Unauthorized response

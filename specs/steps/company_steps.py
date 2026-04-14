@@ -1,6 +1,9 @@
 from behave import given, when, then
 import requests
 import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from environment import get_auth_headers
 
 API_BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
@@ -18,7 +21,7 @@ def step_on_company_detail(context):
 
 @given('companies exist in the system')
 def step_companies_exist(context):
-    response = requests.get(f"{API_BASE_URL}/companies")
+    response = requests.get(f"{API_BASE_URL}/companies", headers=get_auth_headers(context))
     if response.status_code == 200:
         context.existing_companies = response.json()
     else:
@@ -27,7 +30,8 @@ def step_companies_exist(context):
 @given('a company exists with company_id "{company_id}"')
 def step_company_exists_by_id(context, company_id):
     context.target_company_id = company_id
-    response = requests.get(f"{API_BASE_URL}/companies")
+    auth = get_auth_headers(context)
+    response = requests.get(f"{API_BASE_URL}/companies", headers=auth)
     if response.status_code == 200:
         companies = response.json()
         company = next((c for c in companies if c.get("company_id") == company_id), None)
@@ -42,16 +46,16 @@ def step_company_exists_by_id(context, company_id):
                 "empresa": f"Test Company {company_id}",
                 "cnpj": f"00.000.001/0001-{company_id[-2:]}" if len(company_id) >= 2 else "00.000.001/0001-99",
             }
-            resp = requests.post(f"{API_BASE_URL}/companies", json=create_data)
-            
+            resp = requests.post(f"{API_BASE_URL}/companies", json=create_data, headers=auth)
+
             # Handle duplicate
             if resp.status_code == 400:
                 create_data['company_id'] = f"{company_id}-{suffix}"
                 cnpj = create_data['cnpj'].replace('/', '').replace('.', '').replace('-', '')
                 new_cnpj = cnpj[:-4] + suffix
                 create_data['cnpj'] = f"{new_cnpj[:2]}.{new_cnpj[2:5]}.{new_cnpj[5:8]}/{new_cnpj[8:12]}-{new_cnpj[12:]}"
-                resp = requests.post(f"{API_BASE_URL}/companies", json=create_data)
-            
+                resp = requests.post(f"{API_BASE_URL}/companies", json=create_data, headers=auth)
+
             if resp.status_code in [200, 201]:
                 context.target_company = resp.json()
                 context.target_company_uuid = resp.json().get("id")
@@ -59,7 +63,8 @@ def step_company_exists_by_id(context, company_id):
 @given('a company exists with CNPJ "{cnpj}"')
 def step_company_exists_by_cnpj(context, cnpj):
     context.target_cnpj = cnpj
-    response = requests.get(f"{API_BASE_URL}/companies")
+    auth = get_auth_headers(context)
+    response = requests.get(f"{API_BASE_URL}/companies", headers=auth)
     if response.status_code == 200:
         companies = response.json()
         company = next((c for c in companies if c.get("cnpj") == cnpj), None)
@@ -73,7 +78,7 @@ def step_company_exists_by_cnpj(context, cnpj):
                 "empresa": f"Test Company CNPJ",
                 "cnpj": cnpj,
             }
-            resp = requests.post(f"{API_BASE_URL}/companies", json=create_data)
+            resp = requests.post(f"{API_BASE_URL}/companies", json=create_data, headers=auth)
             if resp.status_code in [200, 201]:
                 context.target_company = resp.json()
                 context.target_company_uuid = resp.json().get("id")
@@ -99,9 +104,7 @@ def step_duplicate_cnpj(context, cnpj):
 
 @when('I save the company')
 def step_click_save_company(context):
-    headers = {}
-    if hasattr(context, 'auth_token') and context.auth_token:
-        headers["Authorization"] = f"Bearer {context.auth_token}"
+    headers = get_auth_headers(context)
 
     response = requests.post(
         f"{API_BASE_URL}/companies",
@@ -148,10 +151,8 @@ def step_change_cliente(context, cliente):
 
 @when('I click "Update"')
 def step_click_update_company(context):
-    headers = {}
-    if hasattr(context, 'auth_token') and context.auth_token:
-        headers["Authorization"] = f"Bearer {context.auth_token}"
-    
+    headers = get_auth_headers(context)
+
     uuid = getattr(context, 'target_company_uuid', None)
     if not uuid and hasattr(context, 'target_company'):
         uuid = context.target_company.get("id")
@@ -175,10 +176,8 @@ def step_click_deactivate_company(context):
 
 @when('I confirm company deactivation')
 def step_confirm_deactivate_company(context):
-    headers = {}
-    if hasattr(context, 'auth_token') and context.auth_token:
-        headers["Authorization"] = f"Bearer {context.auth_token}"
-    
+    headers = get_auth_headers(context)
+
     uuid = getattr(context, 'target_company_uuid', None)
     if not uuid and hasattr(context, 'target_company'):
         uuid = context.target_company.get("id")
@@ -201,10 +200,8 @@ def step_click_delete_company(context):
 
 @when('I confirm company deletion')
 def step_confirm_delete_company(context):
-    headers = {}
-    if hasattr(context, 'auth_token') and context.auth_token:
-        headers["Authorization"] = f"Bearer {context.auth_token}"
-    
+    headers = get_auth_headers(context)
+
     uuid = getattr(context, 'target_company_uuid', None)
     if not uuid and hasattr(context, 'target_company'):
         uuid = context.target_company.get("id")
@@ -228,7 +225,7 @@ def step_click_company(context):
         uuid = context.target_company.get("id")
 
     if uuid:
-        response = requests.get(f"{API_BASE_URL}/companies/{uuid}")
+        response = requests.get(f"{API_BASE_URL}/companies/{uuid}", headers=get_auth_headers(context))
         context.last_response = response
         context.last_response_status = response.status_code
         try:
@@ -243,14 +240,14 @@ def step_click_company(context):
 @when('I navigate to the companies page')
 def step_navigate_companies(context):
     context.current_page = "companies_list"
-    response = requests.get(f"{API_BASE_URL}/companies")
+    response = requests.get(f"{API_BASE_URL}/companies", headers=get_auth_headers(context))
     if response.status_code == 200:
         context.companies_list = response.json()
 
 @when('I navigate to "Companies" page')
 def step_navigate_companies_page(context):
     context.current_page = "companies_list"
-    response = requests.get(f"{API_BASE_URL}/companies")
+    response = requests.get(f"{API_BASE_URL}/companies", headers=get_auth_headers(context))
     if response.status_code == 200:
         context.companies_list = response.json()
 
@@ -266,7 +263,7 @@ def step_api_returns_201(context):
 
 @then('I see the company in the list')
 def step_see_company_in_list(context):
-    response = requests.get(f"{API_BASE_URL}/companies")
+    response = requests.get(f"{API_BASE_URL}/companies", headers=get_auth_headers(context))
     if response.status_code == 200:
         companies = response.json()
         company_id = context.form_data.get("company_id", "")
@@ -330,7 +327,7 @@ def step_company_inactive(context):
 
 @then('it no longer appears in the active companies list')
 def step_not_in_active_list(context):
-    response = requests.get(f"{API_BASE_URL}/companies")
+    response = requests.get(f"{API_BASE_URL}/companies", headers=get_auth_headers(context))
     if response.status_code == 200:
         companies = response.json()
         active = [c for c in companies if c.get("is_active", True)]
@@ -352,7 +349,7 @@ def step_company_permanently_removed(context):
     
     uuid = getattr(context, 'target_company_uuid', None)
     if uuid:
-        response = requests.get(f"{API_BASE_URL}/companies/{uuid}")
+        response = requests.get(f"{API_BASE_URL}/companies/{uuid}", headers=get_auth_headers(context))
         assert response.status_code == 404, \
             f"Expected 404 after delete, got {response.status_code}"
 
