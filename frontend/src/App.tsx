@@ -6,6 +6,7 @@ import CompaniesList from './pages/Companies/CompaniesList';
 import CompanyDetail from './pages/Companies/CompanyDetail';
 import Login from './pages/Login';
 import AuditLog from './pages/AuditLog';
+import ExportModal from './components/ExportModal';
 import { supabase } from './lib/supabase';
 
 const queryClient = new QueryClient();
@@ -256,6 +257,7 @@ function App() {
 function Dashboard() {
   const [kpis, setKpis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showExport, setShowExport] = useState(false);
   const MESES_PT = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -381,14 +383,17 @@ function Dashboard() {
 
           {/* Export button */}
           <div className="mt-6">
-            <a
-              href={`${(import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'}/export/monthly?mes_ano=${selectedMonth}`}
+            <button
+              onClick={() => setShowExport(true)}
               className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
-              download
             >
-              📥 Exportar CSV
-            </a>
+              📥 Exportar Excel
+            </button>
           </div>
+
+          {showExport && (
+            <ExportModal mesAno={selectedMonth} onClose={() => setShowExport(false)} />
+          )}
         </>
       ) : (
         <div className="text-center py-12 text-gray-400">Erro ao carregar dados</div>
