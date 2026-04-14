@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import CompaniesList from './pages/Companies/CompaniesList';
 import CompanyDetail from './pages/Companies/CompanyDetail';
 import Login from './pages/Login';
@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const profileLoadingRef = { current: false };
+  const profileLoadingRef = useRef(false);
 
   async function loadUserProfile(userId: string) {
     if (profileLoadingRef.current) return;
@@ -60,6 +60,9 @@ function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
           await loadUserProfile(session.user.id);
+        } else {
+          setUser(null);
+          setLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
         setUser(null);

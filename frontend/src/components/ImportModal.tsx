@@ -206,13 +206,19 @@ export default function ImportModal({ onClose, onSuccess }: { onClose: () => voi
     setProcessing(true);
     setError(null);
     try {
+      // Timeout after 5 minutes for large imports
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5 * 60 * 1000);
+
       const res = await processImport({
         file_path: filePath,
         mapping,
         sheets: sheetConfig,
         propagate,
         propagate_mes_ano: propagate ? propagateMesAno : undefined,
-      });
+      }, controller.signal);
+
+      clearTimeout(timeout);
       setProgress(100);
       // brief pause so the user sees 100% before moving on
       await new Promise(r => setTimeout(r, 400));
@@ -220,7 +226,11 @@ export default function ImportModal({ onClose, onSuccess }: { onClose: () => voi
       setStep('result');
       onSuccess();
     } catch (e: any) {
-      setError(e.message ?? 'Erro ao processar importação');
+      if (e.name === 'AbortError') {
+        setError('A importação demorou muito. Tente com um arquivo menor ou verifique sua conexão.');
+      } else {
+        setError(e.message ?? 'Erro ao processar importação');
+      }
     } finally {
       setProcessing(false);
     }

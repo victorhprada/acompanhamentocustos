@@ -4,9 +4,14 @@ import { supabase } from '../lib/supabase';
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  // Get current session token
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
+  // Get current session token with a 5s timeout to prevent hanging on refresh races
+  const sessionResult = await Promise.race([
+    supabase.auth.getSession(),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('Auth session timeout')), 5000)
+    ),
+  ]);
+  const token = sessionResult.data.session?.access_token;
 
   const headers: Record<string, any> = { 
     'Content-Type': 'application/json',
@@ -93,8 +98,8 @@ export const processImport = (body: {
   sheets: Array<{ name: string; mes_ano: string; include: boolean }>;
   propagate?: boolean;
   propagate_mes_ano?: string;
-}) =>
+}, signal?: AbortSignal) =>
   fetchApi<{ companies_created: number; companies_updated: number; records_created: number; records_updated: number; errors: string[] }>(
     '/import/process',
-    { method: 'POST', body: JSON.stringify(body) },
+    { method: 'POST', body: JSON.stringify(body), signal },
   );
