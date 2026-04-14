@@ -138,25 +138,39 @@ export const processImport = (body: {
   );
 
 // ─── Export ───────────────────────────────────────────────────────────────────
-export const exportMonthlyXlsx = async (mesAno: string, columns: string[]) => {
+async function downloadXlsx(url: string, filename: string) {
   const token = await getToken();
-  const params = new URLSearchParams({ mes_ano: mesAno });
-  if (columns.length) params.set('columns', columns.join(','));
-
-  const response = await fetch(`${API_BASE}/export/monthly?${params}`, {
+  const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-
   if (response.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
   if (!response.ok) throw new Error(`Export failed: ${response.status}`);
 
   const blob = await response.blob();
-  const url = URL.createObjectURL(blob);
+  const objectUrl = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
-  a.download = `registros_mensais_${mesAno || 'todos'}.xlsx`;
+  a.href = objectUrl;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  URL.revokeObjectURL(objectUrl);
+}
+
+export const exportMonthlyXlsx = async (mesAno: string, columns: string[]) => {
+  const params = new URLSearchParams({ mes_ano: mesAno });
+  if (columns.length) params.set('columns', columns.join(','));
+  await downloadXlsx(
+    `${API_BASE}/export/monthly?${params}`,
+    `registros_mensais_${mesAno || 'todos'}.xlsx`,
+  );
+};
+
+export const exportRentabilidadeXlsx = async (mesAno: string, columns: string[]) => {
+  const params = new URLSearchParams({ mes_ano: mesAno });
+  if (columns.length) params.set('columns', columns.join(','));
+  await downloadXlsx(
+    `${API_BASE}/export/rentabilidade?${params}`,
+    `faturamento_mensal_${mesAno}.xlsx`,
+  );
 };

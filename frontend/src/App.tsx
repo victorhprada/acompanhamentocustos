@@ -7,6 +7,7 @@ import CompanyDetail from './pages/Companies/CompanyDetail';
 import Login from './pages/Login';
 import AuditLog from './pages/AuditLog';
 import ExportModal from './components/ExportModal';
+import ExportRentabilidadeModal from './components/ExportRentabilidadeModal';
 import { getDashboard } from './services/api';
 import { supabase } from './lib/supabase';
 
@@ -259,6 +260,7 @@ function Dashboard() {
   const [kpis, setKpis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showExport, setShowExport] = useState(false);
+  const [showExportRentabilidade, setShowExportRentabilidade] = useState(false);
   const MESES_PT = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -367,18 +369,27 @@ function Dashboard() {
             />
           </div>
 
-          {/* Export button */}
-          <div className="mt-6">
+          {/* Export buttons */}
+          <div className="mt-6 flex gap-3">
             <button
               onClick={() => setShowExport(true)}
               className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
             >
               📥 Exportar Excel
             </button>
+            <button
+              onClick={() => setShowExportRentabilidade(true)}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
+            >
+              📊 Faturamento Mensal
+            </button>
           </div>
 
           {showExport && (
             <ExportModal mesAno={selectedMonth} onClose={() => setShowExport(false)} />
+          )}
+          {showExportRentabilidade && (
+            <ExportRentabilidadeModal mesAno={selectedMonth} onClose={() => setShowExportRentabilidade(false)} />
           )}
         </>
       ) : (
