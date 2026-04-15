@@ -58,7 +58,29 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    // Only use onAuthStateChange to avoid lock conflicts
+    let handledInitialSession = false;
+
+    // Check for existing session on mount (handles hard page reloads after login)
+    async function checkInitialSession() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+          handledInitialSession = true;
+        } else {
+          setLoading(false);
+          handledInitialSession = true;
+        }
+      } catch (error) {
+        console.error('Error checking initial session:', error);
+        setLoading(false);
+        handledInitialSession = true;
+      }
+    }
+
+    checkInitialSession();
+
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         if (session?.user) {
@@ -71,10 +93,14 @@ function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setLoading(false);
       } else if (event === 'INITIAL_SESSION') {
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
-        } else {
-          setLoading(false);
+        // Skip if we already handled it in checkInitialSession
+        if (!handledInitialSession) {
+          handledInitialSession = true;
+          if (session?.user) {
+            await loadUserProfile(session.user.id);
+          } else {
+            setLoading(false);
+          }
         }
       }
     });
