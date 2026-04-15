@@ -1,11 +1,14 @@
 import io
-from fastapi import APIRouter, Depends, Query, Response
+import logging
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from supabase import create_client, Client
 from app.config import settings
 from app.deps import verify_token
 from typing import Optional
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -204,34 +207,38 @@ def export_monthly_xlsx(
     _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
-    active_columns = resolve_columns(columns, MONTHLY_COLUMNS)
+    try:
+        active_columns = resolve_columns(columns, MONTHLY_COLUMNS)
 
-    records = (
-        supabase.table("monthly_records").select("*")
-        .eq("mes_ano", mes_ano) if mes_ano
-        else supabase.table("monthly_records").select("*")
-    ).execute().data or []
+        records = (
+            supabase.table("monthly_records").select("*")
+            .eq("mes_ano", mes_ano) if mes_ano
+            else supabase.table("monthly_records").select("*")
+        ).execute().data or []
 
-    company_map: dict[str, str] = {}
-    if any(k == "empresa" for k, _ in active_columns) and records:
-        ids = list({r["company_id"] for r in records})
-        res = supabase.table("companies").select("id, empresa").in_("id", ids).execute()
-        company_map = {c["id"]: c["empresa"] for c in res.data or []}
+        company_map: dict[str, str] = {}
+        if any(k == "empresa" for k, _ in active_columns) and records:
+            ids = list({r["company_id"] for r in records})
+            res = supabase.table("companies").select("id, empresa").in_("id", ids).execute()
+            company_map = {c["id"]: c["empresa"] for c in res.data or []}
 
-    rows = []
-    for rec in records:
-        row = []
-        for field, _ in active_columns:
-            if field == "empresa":
-                row.append(company_map.get(rec.get("company_id", ""), ""))
-            elif field == "mes_ano":
-                row.append(format_mes_ano(rec.get(field)))
-            else:
-                row.append(rec.get(field))
-        rows.append(row)
+        rows = []
+        for rec in records:
+            row = []
+            for field, _ in active_columns:
+                if field == "empresa":
+                    row.append(company_map.get(rec.get("company_id", ""), ""))
+                elif field == "mes_ano":
+                    row.append(format_mes_ano(rec.get(field)))
+                else:
+                    row.append(rec.get(field))
+            rows.append(row)
 
-    content = build_xlsx("Registros Mensais", active_columns, rows)
-    return xlsx_response(content, f"registros_mensais_{mes_ano or 'todos'}.xlsx")
+        content = build_xlsx("Registros Mensais", active_columns, rows)
+        return xlsx_response(content, f"registros_mensais_{mes_ano or 'todos'}.xlsx")
+    except Exception as e:
+        logger.error("Error in export/monthly: %s", str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to export monthly records: {str(e)}")
 
 
 @router.get("/export/rentabilidade")
@@ -241,82 +248,97 @@ def export_rentabilidade_xlsx(
     _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
-    active_columns = resolve_columns(columns, RENTABILIDADE_COLUMNS)
+    try:
+        active_columns = resolve_columns(columns, RENTABILIDADE_COLUMNS)
 
-    # Section 1: records where mensal_x_rentabilidade = 'Faturamento mensal'
-    sec1_records = (
-        supabase.table("monthly_records")
-        .select("*")
-        .eq("mes_ano", mes_ano)
-        .eq("mensal_x_rentabilidade", "Faturamento mensal")
-        .execute()
-        .data or []
-    )
-
-    # Collect all company IDs needed across both sections
-    sec1_company_ids = {r["company_id"] for r in sec1_records}
-
-    # Section 2: companies with subsidio=true that have at least one record in this month
-    # where media_cartao_realizado < media_contratada
-    subsidio_companies_res = (
-        supabase.table("companies")
-        .select("id, company_id, empresa, cnpj, razao_social, data_assinatura_contrato, email_envio, inicio_cobranca, vencimento, subsidio")
-        .eq("subsidio", True)
-        .execute()
-    )
-    subsidio_company_ids = {c["id"] for c in subsidio_companies_res.data or []}
-
-    sec2_records = []
-    if subsidio_company_ids:
-        all_records_for_month = (
+        # Section 1: records where mensal_x_rentabilidade = 'Faturamento mensal'
+        sec1_result = (
             supabase.table("monthly_records")
             .select("*")
             .eq("mes_ano", mes_ano)
-            .in_("company_id", list(subsidio_company_ids))
+            .eq("mensal_x_rentabilidade", "Faturamento mensal")
             .execute()
-            .data or []
         )
-        for r in all_records_for_month:
-            realizado = r.get("media_cartao_realizado")
-            contratada = r.get("media_contratada")
-            if realizado is not None and contratada is not None and realizado < contratada:
-                sec2_records.append(r)
+        if sec1_result.error:
+            raise Exception(f"Query error for section 1: {sec1_result.error}")
+        sec1_records = sec1_result.data or []
 
-    # Fetch company data for all needed IDs
-    all_company_ids = sec1_company_ids | {r["company_id"] for r in sec2_records}
-    company_map: dict[str, dict] = {}
-    if all_company_ids:
-        companies_res = (
+        # Collect all company IDs needed across both sections
+        sec1_company_ids = {r["company_id"] for r in sec1_records}
+
+        # Section 2: companies with subsidio=true that have at least one record in this month
+        # where media_cartao_realizado < media_contratada
+        subsidio_result = (
             supabase.table("companies")
             .select("id, company_id, empresa, cnpj, razao_social, data_assinatura_contrato, email_envio, inicio_cobranca, vencimento, subsidio")
-            .in_("id", list(all_company_ids))
+            .eq("subsidio", True)
             .execute()
         )
-        company_map = {c["id"]: c for c in companies_res.data or []}
+        if subsidio_result.error:
+            raise Exception(f"Query error for subsidio companies: {subsidio_result.error}")
+        subsidio_companies = subsidio_result.data or []
+        subsidio_company_ids = {c["id"] for c in subsidio_companies}
 
-    def build_rows(records: list) -> list[list]:
-        rows = []
-        for rec in records:
-            company = company_map.get(rec.get("company_id", ""), {})
-            row = []
-            for field, _ in active_columns:
-                if field in COMPANY_FIELD_KEYS:
-                    value = company.get(field)
-                    if field in ("data_assinatura_contrato", "inicio_cobranca") and value:
-                        value = str(value)[:10].replace("-", "/")
-                        parts = value.split("/")
-                        if len(parts) == 3:
-                            value = f"{parts[2]}/{parts[1]}/{parts[0]}"
-                elif field == "mes_ano":
-                    value = format_mes_ano(rec.get(field))
-                else:
-                    value = rec.get(field)
-                row.append(value)
-            rows.append(row)
-        return rows
+        sec2_records = []
+        if subsidio_company_ids:
+            all_records_for_month_result = (
+                supabase.table("monthly_records")
+                .select("*")
+                .eq("mes_ano", mes_ano)
+                .in_("company_id", list(subsidio_company_ids))
+                .execute()
+            )
+            if all_records_for_month_result.error:
+                raise Exception(f"Query error for subsidio records: {all_records_for_month_result.error}")
+            all_records_for_month = all_records_for_month_result.data or []
+            for r in all_records_for_month:
+                realizado = r.get("media_cartao_realizado")
+                contratada = r.get("media_contratada")
+                if realizado is not None and contratada is not None and realizado < contratada:
+                    sec2_records.append(r)
 
-    sec1_rows = build_rows(sec1_records)
-    sec2_rows = build_rows(sec2_records)
+        # Fetch company data for all needed IDs
+        all_company_ids = sec1_company_ids | {r["company_id"] for r in sec2_records}
+        company_map: dict[str, dict] = {}
+        if all_company_ids:
+            companies_res = (
+                supabase.table("companies")
+                .select("id, company_id, empresa, cnpj, razao_social, data_assinatura_contrato, email_envio, inicio_cobranca, vencimento, subsidio")
+                .in_("id", list(all_company_ids))
+                .execute()
+            )
+            if companies_res.error:
+                raise Exception(f"Query error for company data: {companies_res.error}")
+            company_map = {c["id"]: c for c in companies_res.data or []}
 
-    content = build_two_section_xlsx(active_columns, sec1_rows, sec2_rows)
-    return xlsx_response(content, f"faturamento_mensal_{mes_ano}.xlsx")
+        def build_rows(records: list) -> list[list]:
+            rows = []
+            for rec in records:
+                company = company_map.get(rec.get("company_id", ""), {})
+                row = []
+                for field, _ in active_columns:
+                    if field in COMPANY_FIELD_KEYS:
+                        value = company.get(field)
+                        if field in ("data_assinatura_contrato", "inicio_cobranca") and value:
+                            value = str(value)[:10].replace("-", "/")
+                            parts = value.split("/")
+                            if len(parts) == 3:
+                                value = f"{parts[2]}/{parts[1]}/{parts[0]}"
+                    elif field == "mes_ano":
+                        value = format_mes_ano(rec.get(field))
+                    else:
+                        value = rec.get(field)
+                    row.append(value)
+                rows.append(row)
+            return rows
+
+        sec1_rows = build_rows(sec1_records)
+        sec2_rows = build_rows(sec2_records)
+
+        content = build_two_section_xlsx(active_columns, sec1_rows, sec2_rows)
+        return xlsx_response(content, f"faturamento_mensal_{mes_ano}.xlsx")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Error in export/rentabilidade: %s", str(e), exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to export rentabilidade report: {str(e)}")

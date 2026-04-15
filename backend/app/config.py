@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     DATABASE_URL: Optional[str] = None
     
     # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,https://acompanhamentodecustos.vercel.app"
 
     # Auth
     SECRET_KEY: str
