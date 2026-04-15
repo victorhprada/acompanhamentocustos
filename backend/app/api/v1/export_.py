@@ -259,8 +259,6 @@ def export_rentabilidade_xlsx(
             .eq("mensal_x_rentabilidade", "Faturamento mensal")
             .execute()
         )
-        if sec1_result.error:
-            raise Exception(f"Query error for section 1: {sec1_result.error}")
         sec1_records = sec1_result.data or []
 
         # Collect all company IDs needed across both sections
@@ -274,8 +272,6 @@ def export_rentabilidade_xlsx(
             .eq("subsidio", True)
             .execute()
         )
-        if subsidio_result.error:
-            raise Exception(f"Query error for subsidio companies: {subsidio_result.error}")
         subsidio_companies = subsidio_result.data or []
         subsidio_company_ids = {c["id"] for c in subsidio_companies}
 
@@ -288,8 +284,6 @@ def export_rentabilidade_xlsx(
                 .in_("company_id", list(subsidio_company_ids))
                 .execute()
             )
-            if all_records_for_month_result.error:
-                raise Exception(f"Query error for subsidio records: {all_records_for_month_result.error}")
             all_records_for_month = all_records_for_month_result.data or []
             for r in all_records_for_month:
                 realizado = r.get("media_cartao_realizado")
@@ -307,8 +301,6 @@ def export_rentabilidade_xlsx(
                 .in_("id", list(all_company_ids))
                 .execute()
             )
-            if companies_res.error:
-                raise Exception(f"Query error for company data: {companies_res.error}")
             company_map = {c["id"]: c for c in companies_res.data or []}
 
         def build_rows(records: list) -> list[list]:
