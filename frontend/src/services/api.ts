@@ -34,7 +34,7 @@ async function getToken(): Promise<string | null> {
 }
 
 // ─── Core fetch helper ────────────────────────────────────────────────────────
-async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const token = await getToken();
 
   const headers: Record<string, any> = {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { fetchApi } from '../services/api';
 
 interface AuditLog {
   id: string;
@@ -35,7 +36,6 @@ export default function AuditLog() {
   async function fetchLogs() {
     setLoading(true);
     try {
-      const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
       const params = new URLSearchParams({
         limit: String(limit),
         offset: String(offset),
@@ -43,12 +43,9 @@ export default function AuditLog() {
       if (filterTable) params.set('table_name', filterTable);
       if (filterAction) params.set('action', filterAction);
 
-      const res = await fetch(`${API_BASE}/audit-logs?${params}`);
-      if (res.ok) {
-        const data = await res.json();
-        setLogs(data.items || []);
-        setTotal(data.total || 0);
-      }
+      const data = await fetchApi<{ items: AuditLog[]; total: number; limit: number; offset: number }>(`/audit-logs?${params}`);
+      setLogs(data.items || []);
+      setTotal(data.total || 0);
     } catch (e) {
       console.error('Failed to fetch audit logs:', e);
     } finally {
