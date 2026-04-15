@@ -120,7 +120,7 @@ def build_two_section_xlsx(
 
     # Auto-width based on all content
     for col_idx in range(1, col_count + 1):
-        col_letter = ws.cell(row=1, column=col_idx).column_letter
+        col_letter = ws.cell(row=2, column=col_idx).column_letter
         max_len = 0
         for cell in ws.iter_cols(min_col=col_idx, max_col=col_idx):
             for c in cell:
