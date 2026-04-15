@@ -6,6 +6,7 @@ from app.config import settings
 from app.deps import verify_token
 from typing import Optional
 from openpyxl import Workbook
+from openpyxl.cell.cell import MergedCell
 from openpyxl.styles import Font, PatternFill, Alignment
 
 logger = logging.getLogger(__name__)
@@ -118,13 +119,16 @@ def build_two_section_xlsx(
     write_rows(sec2_start + 2, section2_rows)
 
     # Auto-width based on all content
-    for col in ws.columns:
-        max_len = max(
-            (len(str(cell.value)) if cell.value is not None else 0)
-            for cell in col
-            if not getattr(cell, "data_type", None) == "n" or cell.value is not None
-        )
-        ws.column_dimensions[col[0].column_letter].width = min(max_len + 4, 40)
+    for col_idx in range(1, col_count + 1):
+        col_letter = ws.cell(row=1, column=col_idx).column_letter
+        max_len = 0
+        for cell in ws.iter_cols(min_col=col_idx, max_col=col_idx):
+            for c in cell:
+                if isinstance(c, MergedCell):
+                    continue
+                if c.value is not None:
+                    max_len = max(max_len, len(str(c.value)))
+        ws.column_dimensions[col_letter].width = min(max_len + 4, 40)
 
     output = io.BytesIO()
     wb.save(output)
