@@ -17,21 +17,27 @@ def get_dashboard(
     _user=Depends(verify_token),
     supabase: Client = Depends(get_supabase),
 ):
-    """Get dashboard KPIs aggregated by month."""
-    query = supabase.table("monthly_records").select(
-        "vidas_cobradas,"
-        "valor_vidas,"
-        "custo_por_cliente,"
-        "faturamento,"
-        "mes_ano"
-    )
+    """Get dashboard KPIs aggregated by month. Only includes records from active companies."""
+    # First, get active company IDs
+    active_companies = supabase.table("companies").select("id").eq("is_active", True).execute()
+    active_company_ids = [c["id"] for c in (active_companies.data or [])]
 
-    if mes_ano:
-        query = query.eq("mes_ano", mes_ano)
+    # Query monthly_records only for active companies
+    records = []
+    if active_company_ids:
+        query = supabase.table("monthly_records").select(
+            "vidas_cobradas,"
+            "valor_vidas,"
+            "custo_por_cliente,"
+            "faturamento,"
+            "mes_ano"
+        ).in_("company_id", active_company_ids)
 
-    result = query.execute()
+        if mes_ano:
+            query = query.eq("mes_ano", mes_ano)
 
-    records = result.data or []
+        result = query.execute()
+        records = result.data or []
 
     # Aggregate KPIs
     total_vidas_cobradas = 0
@@ -46,9 +52,7 @@ def get_dashboard(
         total_faturamento += rec.get("faturamento") or 0
 
     # Get active companies count
-    companies_query = supabase.table("companies").select("id").eq("is_active", True)
-    companies_result = companies_query.execute()
-    total_empresas_ativas = len(companies_result.data or [])
+    total_empresas_ativas = len(active_company_ids)
 
     # Get inactive companies count
     companies_inactive = supabase.table("companies").select("id").eq("is_active", False).execute()
