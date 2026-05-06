@@ -24,6 +24,7 @@ class MonthlyRecordBase(BaseModel):
     media_contratada: Optional[float] = None
 
     # Wiipo
+    nr_vidas: Optional[float] = None
     valor_elegivel_wiipo: Optional[float] = None
     faturamento_wiipo: Optional[float] = None
 
@@ -49,6 +50,7 @@ class MonthlyRecordUpdate(BaseModel):
     rs_carregado: Optional[float] = None
     media_cartao_realizado: Optional[float] = None
     media_contratada: Optional[float] = None
+    nr_vidas: Optional[float] = None
     valor_elegivel_wiipo: Optional[float] = None
     faturamento_wiipo: Optional[float] = None
     mensal_x_rentabilidade: Optional[str] = Field(None, max_length=100)

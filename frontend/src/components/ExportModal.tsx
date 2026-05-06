@@ -39,6 +39,7 @@ const COLUMN_GROUPS = [
   {
     group: 'Wiipo',
     columns: [
+      { key: 'nr_vidas', label: 'Nº Vidas' },
       { key: 'valor_elegivel_wiipo', label: 'Valor Elegível Wiipo' },
       { key: 'faturamento_wiipo', label: 'Faturamento Wiipo' },
     ],

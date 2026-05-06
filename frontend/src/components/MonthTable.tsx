@@ -29,6 +29,7 @@ const COLUMN_GROUPS = {
     { key: 'media_contratada', label: 'Média Contratada', type: 'money' },
   ],
   'Wiipo': [
+    { key: 'nr_vidas', label: 'Nº Vidas', type: 'number' },
     { key: 'valor_elegivel_wiipo', label: 'Valor Elegível Wiipo', type: 'money' },
     { key: 'faturamento_wiipo', label: 'Faturamento Wiipo', type: 'money' },
   ],

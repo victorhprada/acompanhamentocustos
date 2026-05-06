@@ -25,7 +25,7 @@ MONTHLY_FIELDS = {
     "elegiveis_contrato", "elegiveis", "valor_elegivel", "valor_final",
     "vidas_cobradas", "valor_vidas",
     "nr_cartao_contrato_flex", "nr_cartao_carga_flex", "rs_carregado",
-    "media_cartao_realizado", "media_contratada", "valor_elegivel_wiipo",
+    "media_cartao_realizado", "media_contratada", "nr_vidas", "valor_elegivel_wiipo",
     "faturamento_wiipo", "mensal_x_rentabilidade", "custo_por_cliente",
     "faturamento",
 }

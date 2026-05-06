@@ -30,6 +30,7 @@ export interface MonthlyRecord {
   rs_carregado?: number;
   media_cartao_realizado?: number;
   media_contratada?: number;
+  nr_vidas?: number;
   valor_elegivel_wiipo?: number;
   faturamento_wiipo?: number;
   mensal_x_rentabilidade?: string;
