@@ -23,6 +23,18 @@ def get_future_months(mes_ano: str) -> list[str]:
     return [m for m in MONTHS_2026 if date.fromisoformat(m) > current_date]
 
 
+def apply_faturamento_dependentes(data: dict) -> dict:
+    """Set faturamento_dependentes = qtd × valor when both inputs are present."""
+    qtd = data.get("qtd_dependentes")
+    valor = data.get("valor_por_dependente")
+    if qtd is not None and valor is not None:
+        try:
+            data["faturamento_dependentes"] = float(qtd) * float(valor)
+        except (TypeError, ValueError):
+            pass
+    return data
+
+
 @router.get("/monthly", response_model=List[MonthlyRecord])
 def list_monthly_records(
     company_id: Optional[str] = None,
@@ -82,7 +94,8 @@ def create_monthly_record(
     if existing.data:
         raise HTTPException(status_code=400, detail="Já existe um registro para este mês")
 
-    result = supabase.table("monthly_records").insert(record.model_dump(mode="json")).execute()
+    payload = apply_faturamento_dependentes(record.model_dump(mode="json"))
+    result = supabase.table("monthly_records").insert(payload).execute()
     if not result.data:
         raise HTTPException(status_code=400, detail="Falha ao criar registro")
 
@@ -98,8 +111,7 @@ def create_monthly_record(
                 .execute()
             )
             if not check.data:
-                inherited = record.model_dump(mode="json")
-                inherited["mes_ano"] = future_month
+                inherited = {**payload, "mes_ano": future_month}
                 supabase.table("monthly_records").insert(inherited).execute()
 
     return created
@@ -118,7 +130,7 @@ def update_monthly_record(
         raise HTTPException(status_code=404, detail="Monthly record not found")
 
     current = existing.data[0]
-    update_data = record.model_dump(mode="json", exclude_unset=True)
+    update_data = apply_faturamento_dependentes(record.model_dump(mode="json", exclude_unset=True))
 
     result = supabase.table("monthly_records").update(update_data).eq("id", record_id).execute()
     if not result.data:
@@ -136,7 +148,7 @@ def update_monthly_record(
             if check.data:
                 supabase.table("monthly_records").update(update_data).eq("id", check.data[0]["id"]).execute()
             else:
-                new_data = {**current, **update_data, "mes_ano": future_month}
+                new_data = apply_faturamento_dependentes({**current, **update_data, "mes_ano": future_month})
                 for key in ["id", "created_at", "updated_at", "created_by", "updated_by"]:
                     new_data.pop(key, None)
                 supabase.table("monthly_records").insert(new_data).execute()

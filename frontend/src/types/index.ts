@@ -34,9 +34,12 @@ export interface MonthlyRecord {
   nr_vidas?: number;
   valor_elegivel_wiipo?: number;
   faturamento_wiipo?: number;
+  qtd_dependentes?: number;
+  valor_por_dependente?: number;
   mensal_x_rentabilidade?: string;
   custo_por_cliente?: number;
   faturamento?: number;
+  faturamento_dependentes?: number;
   created_at: string;
   updated_at: string;
 }

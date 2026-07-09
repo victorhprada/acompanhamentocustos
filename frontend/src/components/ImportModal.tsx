@@ -31,9 +31,12 @@ const MONTHLY_FIELD_OPTIONS = [
   { value: 'nr_vidas', label: 'Nº Vidas' },
   { value: 'valor_elegivel_wiipo', label: 'Valor Elegível Wiipo' },
   { value: 'faturamento_wiipo', label: 'Faturamento Wiipo' },
+  { value: 'qtd_dependentes', label: 'Qtd Dependentes' },
+  { value: 'valor_por_dependente', label: 'Valor por Dependente' },
   { value: 'mensal_x_rentabilidade', label: 'Mensal x Rentabilidade' },
   { value: 'custo_por_cliente', label: 'Custo por Cliente' },
   { value: 'faturamento', label: 'Faturamento' },
+  { value: 'faturamento_dependentes', label: 'Faturamento de Dependentes' },
 ];
 
 // ─── Auto-mapper ─────────────────────────────────────────────────────────────
@@ -68,6 +71,11 @@ const KNOWN_MAPPINGS: Record<string, string> = {
   'numero de vidas': 'nr_vidas',
   'número de vidas': 'nr_vidas',
   'faturamento wiipo': 'faturamento_wiipo',
+  'qtd dependentes': 'qtd_dependentes',
+  'quantidade dependentes': 'qtd_dependentes',
+  'valor por dependente': 'valor_por_dependente',
+  'faturamento de dependentes': 'faturamento_dependentes',
+  'faturamento dependentes': 'faturamento_dependentes',
   'mensal x rentabilidade': 'mensal_x_rentabilidade',
   'data assinatura contrato': 'data_assinatura_contrato',
   'valor vidas': 'valor_vidas',

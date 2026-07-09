@@ -163,9 +163,12 @@ MONTHLY_COLUMNS: list[tuple[str, str]] = [
     ("nr_vidas", "Nº Vidas"),
     ("valor_elegivel_wiipo", "Valor Elegível Wiipo"),
     ("faturamento_wiipo", "Faturamento Wiipo"),
+    ("qtd_dependentes", "Qtd Dependentes"),
+    ("valor_por_dependente", "Valor por Dependente"),
     ("mensal_x_rentabilidade", "Mensal x Rentabilidade"),
     ("custo_por_cliente", "Custo por Cliente"),
     ("faturamento", "Faturamento"),
+    ("faturamento_dependentes", "Faturamento de Dependentes"),
 ]
 
 # Company fields available in the rentabilidade export
@@ -198,9 +201,12 @@ RENTABILIDADE_COLUMNS: list[tuple[str, str]] = COMPANY_COLUMNS + [
     ("nr_vidas", "Nº Vidas"),
     ("valor_elegivel_wiipo", "Valor Elegível Wiipo"),
     ("faturamento_wiipo", "Faturamento Wiipo"),
+    ("qtd_dependentes", "Qtd Dependentes"),
+    ("valor_por_dependente", "Valor por Dependente"),
     ("mensal_x_rentabilidade", "Mensal x Rentabilidade"),
     ("custo_por_cliente", "Custo por Cliente"),
     ("faturamento", "Faturamento"),
+    ("faturamento_dependentes", "Faturamento de Dependentes"),
 ]
 
 

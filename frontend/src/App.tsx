@@ -369,7 +369,7 @@ function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <StatCard title="Empresas Matriz Ativas" value={formatNumber(kpis.total_empresas_matriz_ativas ?? kpis.total_empresas_ativas)} />
             <StatCard title="Empresas Filiais Ativas" value={formatNumber(kpis.total_empresas_filiais_ativas ?? 0)} />
-            <StatCard title="Registros no Mês" value={formatNumber(kpis.total_registros)} />
+            <StatCard title="Total de empresas faturadas no mês" value={formatNumber(kpis.total_registros)} />
           </div>
 
           {/* KPIs */}

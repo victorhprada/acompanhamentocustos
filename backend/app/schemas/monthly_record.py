@@ -27,11 +27,14 @@ class MonthlyRecordBase(BaseModel):
     nr_vidas: Optional[float] = None
     valor_elegivel_wiipo: Optional[float] = None
     faturamento_wiipo: Optional[float] = None
+    qtd_dependentes: Optional[float] = None
+    valor_por_dependente: Optional[float] = None
 
     # Financeiro
     mensal_x_rentabilidade: Optional[str] = Field(None, max_length=100)
     custo_por_cliente: Optional[float] = None
     faturamento: Optional[float] = None
+    faturamento_dependentes: Optional[float] = None
 
 
 class MonthlyRecordCreate(MonthlyRecordBase):
@@ -53,9 +56,12 @@ class MonthlyRecordUpdate(BaseModel):
     nr_vidas: Optional[float] = None
     valor_elegivel_wiipo: Optional[float] = None
     faturamento_wiipo: Optional[float] = None
+    qtd_dependentes: Optional[float] = None
+    valor_por_dependente: Optional[float] = None
     mensal_x_rentabilidade: Optional[str] = Field(None, max_length=100)
     custo_por_cliente: Optional[float] = None
     faturamento: Optional[float] = None
+    faturamento_dependentes: Optional[float] = None
 
 
 class MonthlyRecord(MonthlyRecordBase):

@@ -54,6 +54,8 @@ const COLUMN_GROUPS = [
       { key: 'nr_vidas', label: 'Nº Vidas' },
       { key: 'valor_elegivel_wiipo', label: 'Valor Elegível Wiipo' },
       { key: 'faturamento_wiipo', label: 'Faturamento Wiipo' },
+      { key: 'qtd_dependentes', label: 'Qtd Dependentes' },
+      { key: 'valor_por_dependente', label: 'Valor por Dependente' },
     ],
   },
   {
@@ -62,6 +64,7 @@ const COLUMN_GROUPS = [
       { key: 'mensal_x_rentabilidade', label: 'Mensal x Rentabilidade' },
       { key: 'custo_por_cliente', label: 'Custo por Cliente' },
       { key: 'faturamento', label: 'Faturamento' },
+      { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes' },
     ],
   },
 ];

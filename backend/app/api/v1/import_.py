@@ -27,8 +27,9 @@ MONTHLY_FIELDS = {
     "vidas_cobradas", "valor_vidas",
     "nr_cartao_contrato_flex", "nr_cartao_carga_flex", "rs_carregado",
     "media_cartao_realizado", "media_contratada", "nr_vidas", "valor_elegivel_wiipo",
-    "faturamento_wiipo", "mensal_x_rentabilidade", "custo_por_cliente",
-    "faturamento",
+    "faturamento_wiipo", "qtd_dependentes", "valor_por_dependente",
+    "mensal_x_rentabilidade", "custo_por_cliente",
+    "faturamento", "faturamento_dependentes",
 }
 
 NUMERIC_MONTHLY_FIELDS = MONTHLY_FIELDS - {"mensal_x_rentabilidade"}
@@ -352,6 +353,15 @@ def process_import(
 
             company_data = {k: v for k, v in row_data.items() if k in COMPANY_FIELDS}
             monthly_data = {k: v for k, v in row_data.items() if k in MONTHLY_FIELDS}
+
+            # Auto-calc faturamento_dependentes when both inputs are present
+            qtd = monthly_data.get("qtd_dependentes")
+            valor = monthly_data.get("valor_por_dependente")
+            if qtd is not None and valor is not None and monthly_data.get("faturamento_dependentes") is None:
+                try:
+                    monthly_data["faturamento_dependentes"] = float(qtd) * float(valor)
+                except (TypeError, ValueError):
+                    pass
 
             # --- Sanitize CNPJ ---
             if company_data.get("cnpj"):

@@ -32,11 +32,14 @@ const COLUMN_GROUPS = {
     { key: 'nr_vidas', label: 'Nº Vidas', type: 'number' },
     { key: 'valor_elegivel_wiipo', label: 'Valor Elegível Wiipo', type: 'money' },
     { key: 'faturamento_wiipo', label: 'Faturamento Wiipo', type: 'money' },
+    { key: 'qtd_dependentes', label: 'Qtd Dependentes', type: 'number' },
+    { key: 'valor_por_dependente', label: 'Valor por dependente', type: 'money' },
   ],
   'Financeiro': [
     { key: 'mensal_x_rentabilidade', label: 'Mensal x Rentabilidade', type: 'text' },
     { key: 'custo_por_cliente', label: 'Custo por Cliente', type: 'money' },
     { key: 'faturamento', label: 'Faturamento', type: 'money' },
+    { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes', type: 'money', computed: true },
   ],
 };
 
@@ -133,10 +136,34 @@ export default function MonthTable({
     setPropagateConfirm(false);
   };
 
+  const calcFaturamentoDependentes = (form: Record<string, any>) => {
+    const qtd = form.qtd_dependentes;
+    const valor = form.valor_por_dependente;
+    if (qtd === undefined || qtd === null || qtd === '' || valor === undefined || valor === null || valor === '') {
+      return '';
+    }
+    const product = parseFloat(qtd) * parseFloat(valor);
+    return Number.isFinite(product) ? String(product) : '';
+  };
+
+  const updateEditField = (key: string, value: string) => {
+    setEditForm(prev => {
+      const next = { ...prev, [key]: value };
+      if (key === 'qtd_dependentes' || key === 'valor_por_dependente') {
+        next.faturamento_dependentes = calcFaturamentoDependentes(next);
+      }
+      return next;
+    });
+  };
+
   const doSave = (propagate: boolean) => {
     const data: Record<string, any> = {};
+    const formWithCalc: Record<string, any> = {
+      ...editForm,
+      faturamento_dependentes: calcFaturamentoDependentes(editForm) || editForm.faturamento_dependentes,
+    };
     ALL_COLUMNS.forEach(f => {
-      const val = editForm[f.key];
+      const val = formWithCalc[f.key];
       if (val !== undefined && val !== null && val !== '') {
         data[f.key] = f.type !== 'text' ? parseFloat(val) : val;
       }
@@ -235,14 +262,26 @@ export default function MonthTable({
                 <tr className="bg-blue-50">
                   {visibleColumns.map(col => (
                     <td key={col.key} className="px-3 py-2 border-r">
-                      <input
-                        type={col.type === 'text' ? 'text' : 'number'}
-                        step="any"
-                        value={editForm[col.key] ?? ''}
-                        onChange={e => setEditForm(prev => ({ ...prev, [col.key]: e.target.value }))}
-                        className="w-full border rounded px-2 py-1 text-right focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
-                        placeholder={col.label}
-                      />
+                      {'computed' in col && col.computed ? (
+                        <input
+                          type="number"
+                          step="any"
+                          value={calcFaturamentoDependentes(editForm) || editForm[col.key] || ''}
+                          readOnly
+                          className="w-full border rounded px-2 py-1 text-right bg-gray-100 text-gray-600 focus:outline-none text-xs"
+                          placeholder={col.label}
+                          title="Calculado automaticamente: Qtd Dependentes × Valor por dependente"
+                        />
+                      ) : (
+                        <input
+                          type={col.type === 'text' ? 'text' : 'number'}
+                          step="any"
+                          value={editForm[col.key] ?? ''}
+                          onChange={e => updateEditField(col.key, e.target.value)}
+                          className="w-full border rounded px-2 py-1 text-right focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
+                          placeholder={col.label}
+                        />
+                      )}
                     </td>
                   ))}
                   <td className="px-3 py-2 text-center">
