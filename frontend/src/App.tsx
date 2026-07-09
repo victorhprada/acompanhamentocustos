@@ -366,8 +366,9 @@ function Dashboard() {
       ) : kpis ? (
         <>
           {/* Summary cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <StatCard title="Empresas Ativas" value={formatNumber(kpis.total_empresas_ativas)} />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <StatCard title="Empresas Matriz Ativas" value={formatNumber(kpis.total_empresas_matriz_ativas ?? kpis.total_empresas_ativas)} />
+            <StatCard title="Empresas Filiais Ativas" value={formatNumber(kpis.total_empresas_filiais_ativas ?? 0)} />
             <StatCard title="Registros no Mês" value={formatNumber(kpis.total_registros)} />
           </div>
 

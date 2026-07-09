@@ -77,10 +77,15 @@ export default function CompanyDetail() {
       vencimento: company.vencimento?.toString() || '',
       nota_fiscal_descricao: company.nota_fiscal_descricao,
       subsidio: company.subsidio ?? false,
+      tipo_empresa: company.tipo_empresa === 'filial' ? 'filial' : 'matriz',
     });
   };
 
   const handleSave = () => {
+    if (!editForm.tipo_empresa) {
+      setErrors({ tipo_empresa: 'Selecione Matriz ou Filial' });
+      return;
+    }
     const data: Record<string, any> = {};
     if (editForm.empresa) data.empresa = editForm.empresa;
     if (editForm.cnpj) data.cnpj = editForm.cnpj;
@@ -91,6 +96,7 @@ export default function CompanyDetail() {
     if (editForm.vencimento) data.vencimento = parseInt(editForm.vencimento);
     if (editForm.nota_fiscal_descricao) data.nota_fiscal_descricao = editForm.nota_fiscal_descricao;
     data.subsidio = editForm.subsidio ?? false;
+    data.tipo_empresa = editForm.tipo_empresa;
     updateMutation.mutate(data);
   };
 
@@ -118,6 +124,29 @@ export default function CompanyDetail() {
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Descrição NF</label>
                   <textarea value={editForm.nota_fiscal_descricao || ''} onChange={(e) => setEditForm({...editForm, nota_fiscal_descricao: e.target.value})} rows={2} className="w-full border rounded px-2 py-1 text-sm" />
+                </div>
+                <div>
+                  <div className="flex flex-wrap items-center gap-6">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={editForm.tipo_empresa === 'matriz'}
+                        onChange={() => setEditForm({...editForm, tipo_empresa: 'matriz'})}
+                        className="rounded border-gray-300 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700">Matriz</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={editForm.tipo_empresa === 'filial'}
+                        onChange={() => setEditForm({...editForm, tipo_empresa: 'filial'})}
+                        className="rounded border-gray-300 text-blue-600"
+                      />
+                      <span className="text-sm text-gray-700">Filial</span>
+                    </label>
+                  </div>
+                  {errors.tipo_empresa && <p className="text-red-600 text-xs mt-1">{errors.tipo_empresa}</p>}
                 </div>
                 <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
@@ -152,6 +181,16 @@ export default function CompanyDetail() {
                   <Field label="E-mails para envio" value={company.email_envio} multiEmail />
                   <Field label="Início Cobrança" value={company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10).split('-').reverse().join('/') : null} />
                   <Field label="Dia de Vencimento" value={company.vencimento ? `Dia ${company.vencimento}` : null} />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase mb-0.5">Tipo</label>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                      company.tipo_empresa === 'filial'
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'bg-emerald-100 text-emerald-700'
+                    }`}>
+                      {company.tipo_empresa === 'filial' ? 'Filial' : 'Matriz'}
+                    </span>
+                  </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 uppercase mb-0.5">Subsídio</label>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${company.subsidio ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`}>

@@ -125,6 +125,7 @@ export default function CompaniesList() {
     vencimento: '',
     nota_fiscal_descricao: '',
     subsidio: false,
+    tipo_empresa: '' as '' | 'matriz' | 'filial',
   });
 
   const createMutation = useMutation({
@@ -157,7 +158,7 @@ export default function CompaniesList() {
     setShowForm(false);
     setEditingId(null);
     setErrors({});
-    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', data_assinatura_contrato: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '', subsidio: false });
+    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', data_assinatura_contrato: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '', subsidio: false, tipo_empresa: '' });
   };
 
   const startEdit = (company: any) => {
@@ -175,6 +176,7 @@ export default function CompaniesList() {
       vencimento: company.vencimento?.toString() || '',
       nota_fiscal_descricao: company.nota_fiscal_descricao || '',
       subsidio: company.subsidio ?? false,
+      tipo_empresa: company.tipo_empresa === 'filial' ? 'filial' : 'matriz',
     });
   };
 
@@ -224,6 +226,12 @@ export default function CompaniesList() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
+
+    if (!formData.tipo_empresa) {
+      setErrors({ tipo_empresa: 'Selecione Matriz ou Filial' });
+      return;
+    }
+
     // Filter out empty fields and convert vencimento to number
     const data: Record<string, any> = {};
     if (formData.company_id) data.company_id = formData.company_id;
@@ -236,6 +244,7 @@ export default function CompaniesList() {
     if (formData.vencimento) data.vencimento = parseInt(formData.vencimento);
     if (formData.nota_fiscal_descricao) data.nota_fiscal_descricao = formData.nota_fiscal_descricao;
     data.subsidio = formData.subsidio;
+    data.tipo_empresa = formData.tipo_empresa;
 
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
@@ -313,7 +322,30 @@ export default function CompaniesList() {
             />
             {errors.nota_fiscal_descricao && <p className="text-red-600 text-xs mt-1">{errors.nota_fiscal_descricao}</p>}
           </div>
-          <div className="mt-4">
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.tipo_empresa === 'matriz'}
+                    onChange={() => setFormData({ ...formData, tipo_empresa: 'matriz' })}
+                    className="rounded border-gray-300 text-blue-600"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Matriz</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.tipo_empresa === 'filial'}
+                    onChange={() => setFormData({ ...formData, tipo_empresa: 'filial' })}
+                    className="rounded border-gray-300 text-blue-600"
+                  />
+                  <span className="text-sm font-medium text-gray-700">Filial</span>
+                </label>
+              </div>
+              {errors.tipo_empresa && <p className="text-red-600 text-xs mt-1">{errors.tipo_empresa}</p>}
+            </div>
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"

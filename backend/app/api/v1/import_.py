@@ -19,6 +19,7 @@ BUCKET = "imports"
 COMPANY_FIELDS = {
     "company_id", "empresa", "cnpj", "razao_social", "data_assinatura_contrato",
     "email_envio", "inicio_cobranca", "vencimento", "nota_fiscal_descricao", "subsidio",
+    "tipo_empresa",
 }
 
 MONTHLY_FIELDS = {
@@ -181,6 +182,11 @@ def parse_cell(value, system_field: str):
 
     if system_field == "subsidio":
         return raw.lower() in ("true", "sim", "yes", "1", "s")
+    if system_field == "tipo_empresa":
+        normalized = raw.lower().strip()
+        if normalized in ("matriz", "filial"):
+            return normalized
+        return None
     if system_field in NUMERIC_MONTHLY_FIELDS:
         return parse_currency(value)
     if system_field == "inicio_cobranca":
@@ -385,6 +391,8 @@ def process_import(
                     # Ensure unique company_id; default to CNPJ digits
                     if not company_data.get("company_id"):
                         company_data["company_id"] = re.sub(r"\D", "", cnpj)[:50]
+                    if not company_data.get("tipo_empresa"):
+                        company_data["tipo_empresa"] = "matriz"
                     try:
                         ins = supabase.table("companies").insert(company_data).execute()
                         if ins.data:

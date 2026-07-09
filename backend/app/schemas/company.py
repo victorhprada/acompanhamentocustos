@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+from typing import Optional, Literal
 from datetime import date, datetime
+
+TipoEmpresa = Literal["matriz", "filial"]
 
 
 class CompanyBase(BaseModel):
@@ -14,6 +16,7 @@ class CompanyBase(BaseModel):
     vencimento: Optional[int] = Field(None, ge=1, le=31)
     nota_fiscal_descricao: Optional[str] = None
     subsidio: Optional[bool] = None
+    tipo_empresa: TipoEmpresa
 
 
 class CompanyCreate(CompanyBase):
@@ -30,7 +33,16 @@ class CompanyUpdate(BaseModel):
     vencimento: Optional[int] = Field(None, ge=1, le=31)
     nota_fiscal_descricao: Optional[str] = None
     subsidio: Optional[bool] = None
+    tipo_empresa: Optional[TipoEmpresa] = None
     is_active: Optional[bool] = None
+
+    @field_validator("tipo_empresa")
+    @classmethod
+    def validate_tipo_empresa(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in ("matriz", "filial"):
+            raise ValueError("tipo_empresa deve ser 'matriz' ou 'filial'")
+        return v
+
 
 
 class Company(CompanyBase):

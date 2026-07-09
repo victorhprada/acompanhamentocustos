@@ -18,9 +18,22 @@ def get_dashboard(
     supabase: Client = Depends(get_supabase),
 ):
     """Get dashboard KPIs aggregated by month. Only includes records from active companies."""
-    # First, get active company IDs
-    active_companies = supabase.table("companies").select("id").eq("is_active", True).execute()
-    active_company_ids = [c["id"] for c in (active_companies.data or [])]
+    # Active companies (matriz + filial) — financial KPIs include both
+    active_companies = (
+        supabase.table("companies")
+        .select("id, tipo_empresa")
+        .eq("is_active", True)
+        .execute()
+    )
+    active_rows = active_companies.data or []
+    active_company_ids = [c["id"] for c in active_rows]
+
+    total_empresas_matriz_ativas = sum(
+        1 for c in active_rows if (c.get("tipo_empresa") or "matriz") == "matriz"
+    )
+    total_empresas_filiais_ativas = sum(
+        1 for c in active_rows if c.get("tipo_empresa") == "filial"
+    )
 
     # Query monthly_records only for active companies
     records = []
@@ -51,16 +64,15 @@ def get_dashboard(
         total_custo_por_cliente += rec.get("custo_por_cliente") or 0
         total_faturamento += rec.get("faturamento") or 0
 
-    # Get active companies count
-    total_empresas_ativas = len(active_company_ids)
-
     # Get inactive companies count
     companies_inactive = supabase.table("companies").select("id").eq("is_active", False).execute()
     total_empresas_inativas = len(companies_inactive.data or [])
 
     return {
         "mes_ano": mes_ano,
-        "total_empresas_ativas": total_empresas_ativas,
+        "total_empresas_ativas": total_empresas_matriz_ativas,
+        "total_empresas_matriz_ativas": total_empresas_matriz_ativas,
+        "total_empresas_filiais_ativas": total_empresas_filiais_ativas,
         "total_empresas_inativas": total_empresas_inativas,
         "total_registros": len(records),
         "kpis": {

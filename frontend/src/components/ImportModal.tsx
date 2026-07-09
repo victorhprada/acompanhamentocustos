@@ -13,6 +13,7 @@ const COMPANY_FIELD_OPTIONS = [
   { value: 'vencimento', label: 'Vencimento' },
   { value: 'nota_fiscal_descricao', label: 'Descrição Nota Fiscal' },
   { value: 'subsidio', label: 'Subsídio' },
+  { value: 'tipo_empresa', label: 'Tipo (Matriz/Filial)' },
 ];
 
 const MONTHLY_FIELD_OPTIONS = [
@@ -80,6 +81,9 @@ const KNOWN_MAPPINGS: Record<string, string> = {
   'email para envio': 'email_envio',
   'subsidio': 'subsidio',
   'subsídio': 'subsidio',
+  'tipo empresa': 'tipo_empresa',
+  'tipo_empresa': 'tipo_empresa',
+  'matriz/filial': 'tipo_empresa',
 };
 
 function autoMap(label: string): string {

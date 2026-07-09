@@ -10,6 +10,7 @@ export interface Company {
   vencimento?: number;
   nota_fiscal_descricao?: string;
   subsidio?: boolean;
+  tipo_empresa: 'matriz' | 'filial';
   is_active: boolean;
   created_at: string;
   updated_at: string;
