@@ -10,6 +10,7 @@ import ExportModal from './components/ExportModal';
 import ExportRentabilidadeModal from './components/ExportRentabilidadeModal';
 import { getDashboard } from './services/api';
 import { supabase } from './lib/supabase';
+import { IDLE_TIMEOUT_MS } from './lib/session';
 
 const queryClient = new QueryClient();
 
@@ -107,6 +108,49 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Idle timeout: after 3h without interaction, force re-login
+  useEffect(() => {
+    if (!user) return;
+
+    const ACTIVITY_EVENTS: (keyof WindowEventMap)[] = [
+      'mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart', 'click',
+    ];
+    let lastActivity = Date.now();
+    let signingOut = false;
+
+    const markActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const checkIdle = async () => {
+      if (signingOut) return;
+      if (Date.now() - lastActivity < IDLE_TIMEOUT_MS) return;
+      signingOut = true;
+      try {
+        await supabase.auth.signOut();
+      } finally {
+        setUser(null);
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+      }
+    };
+
+    ACTIVITY_EVENTS.forEach(evt => window.addEventListener(evt, markActivity, { passive: true }));
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') markActivity();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    const intervalId = window.setInterval(checkIdle, 60_000);
+
+    return () => {
+      ACTIVITY_EVENTS.forEach(evt => window.removeEventListener(evt, markActivity));
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.clearInterval(intervalId);
+    };
+  }, [user]);
 
   async function signIn(email: string, password: string) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -369,7 +413,14 @@ function Dashboard() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <StatCard title="Empresas Matriz Ativas" value={formatNumber(kpis.total_empresas_matriz_ativas ?? kpis.total_empresas_ativas)} />
             <StatCard title="Empresas Filiais Ativas" value={formatNumber(kpis.total_empresas_filiais_ativas ?? 0)} />
-            <StatCard title="Total de empresas faturadas no mês" value={formatNumber(kpis.total_registros)} />
+            <StatCard
+              title="Total de empresas faturadas no mês"
+              value={formatNumber(
+                kpis.total_empresas_faturadas
+                  ?? ((kpis.total_empresas_matriz_ativas ?? kpis.total_empresas_ativas ?? 0)
+                    + (kpis.total_empresas_filiais_ativas ?? 0))
+              )}
+            />
           </div>
 
           {/* KPIs */}

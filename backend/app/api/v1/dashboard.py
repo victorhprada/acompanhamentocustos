@@ -34,6 +34,7 @@ def get_dashboard(
     total_empresas_filiais_ativas = sum(
         1 for c in active_rows if c.get("tipo_empresa") == "filial"
     )
+    total_empresas_faturadas = total_empresas_matriz_ativas + total_empresas_filiais_ativas
 
     # Query monthly_records only for active companies
     records = []
@@ -43,6 +44,7 @@ def get_dashboard(
             "valor_vidas,"
             "custo_por_cliente,"
             "faturamento,"
+            "faturamento_dependentes,"
             "mes_ano"
         ).in_("company_id", active_company_ids)
 
@@ -62,7 +64,7 @@ def get_dashboard(
         total_vidas_cobradas += rec.get("vidas_cobradas") or 0
         total_valor_vidas += rec.get("valor_vidas") or 0
         total_custo_por_cliente += rec.get("custo_por_cliente") or 0
-        total_faturamento += rec.get("faturamento") or 0
+        total_faturamento += (rec.get("faturamento") or 0) + (rec.get("faturamento_dependentes") or 0)
 
     # Get inactive companies count
     companies_inactive = supabase.table("companies").select("id").eq("is_active", False).execute()
@@ -73,6 +75,7 @@ def get_dashboard(
         "total_empresas_ativas": total_empresas_matriz_ativas,
         "total_empresas_matriz_ativas": total_empresas_matriz_ativas,
         "total_empresas_filiais_ativas": total_empresas_filiais_ativas,
+        "total_empresas_faturadas": total_empresas_faturadas,
         "total_empresas_inativas": total_empresas_inativas,
         "total_registros": len(records),
         "kpis": {

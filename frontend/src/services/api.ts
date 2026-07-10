@@ -1,5 +1,6 @@
 import { Company, MonthlyRecord } from '../types';
 import { supabase } from '../lib/supabase';
+import { isTokenExpiringSoon } from '../lib/session';
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
@@ -8,6 +9,7 @@ const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhos
 // at request time — which races with the Supabase lock bypass and can return null
 // immediately after a page reload before the session is restored in memory.
 let _token: string | null = null;
+let _refreshPromise: Promise<string | null> | null = null;
 
 supabase.auth.onAuthStateChange((_event, session) => {
   _token = session?.access_token ?? null;
@@ -21,39 +23,93 @@ supabase.auth.getSession().then(({ data }) => {
   }
 });
 
+async function refreshAccessToken(): Promise<string | null> {
+  if (_refreshPromise) return _refreshPromise;
+
+  _refreshPromise = (async () => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      if (error || !data.session?.access_token) {
+        _token = null;
+        return null;
+      }
+      _token = data.session.access_token;
+      return _token;
+    } catch {
+      _token = null;
+      return null;
+    } finally {
+      _refreshPromise = null;
+    }
+  })();
+
+  return _refreshPromise;
+}
+
 async function getToken(): Promise<string | null> {
-  if (_token) return _token;
-  // Last-resort fallback: session might still be loading
+  if (_token && !isTokenExpiringSoon(_token)) return _token;
+
+  // Token missing or about to expire — refresh proactively
+  const refreshed = await refreshAccessToken();
+  if (refreshed) return refreshed;
+
+  // Fallback: read whatever is still in storage
   try {
     const { data } = await supabase.auth.getSession();
     _token = data.session?.access_token ?? null;
+    if (_token && isTokenExpiringSoon(_token)) {
+      return refreshAccessToken();
+    }
   } catch {
-    // proceed without token; backend will 401 and we redirect to login
+    // proceed without token; backend will 401
   }
   return _token;
 }
 
-// ─── Core fetch helper ────────────────────────────────────────────────────────
-export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
-  const token = await getToken();
-
-  const headers: Record<string, any> = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(options?.headers || {}),
-  };
-
-  const response = await fetch(`${API_BASE}${path}`, { headers, ...options });
-
-  if (response.status === 401) {
+function redirectToLogin() {
+  if (window.location.pathname !== '/login') {
     window.location.href = '/login';
+  }
+}
+
+async function fetchWithAuth(path: string, options?: RequestInit, retried = false): Promise<Response> {
+  const token = await getToken();
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> | undefined),
+  };
+  if (!(options?.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+
+  if (response.status === 401 && !retried) {
+    const newToken = await refreshAccessToken();
+    if (newToken) {
+      return fetchWithAuth(path, options, true);
+    }
+    redirectToLogin();
     throw new Error('Unauthorized');
   }
+
+  if (response.status === 401) {
+    redirectToLogin();
+    throw new Error('Unauthorized');
+  }
+
+  return response;
+}
+
+// ─── Core fetch helper ────────────────────────────────────────────────────────
+export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
+  const response = await fetchWithAuth(path, options);
 
   if (!response.ok) throw new Error(`API error: ${response.status}`);
   if (response.status === 204) return null as T;
   return response.json();
 }
+
 
 // ─── Companies ────────────────────────────────────────────────────────────────
 export const getCompanies = (activeOnly = true) =>
@@ -101,17 +157,14 @@ export const getDashboard = (mesAno: string) =>
 
 // ─── Import ───────────────────────────────────────────────────────────────────
 export const uploadImportFile = async (file: File) => {
-  const token = await getToken();
   const form = new FormData();
   form.append('file', file);
 
-  const response = await fetch(`${API_BASE}/import/upload`, {
+  const response = await fetchWithAuth('/import/upload', {
     method: 'POST',
     body: form,
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
-  if (response.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
   if (!response.ok) throw new Error(`API error: ${response.status}`);
 
   return response.json() as Promise<{
@@ -138,12 +191,22 @@ export const processImport = (body: {
   );
 
 // ─── Export ───────────────────────────────────────────────────────────────────
-async function downloadXlsx(url: string, filename: string) {
+async function downloadXlsx(path: string, filename: string, retried = false) {
   const token = await getToken();
-  const response = await fetch(url, {
+  const response = await fetch(`${API_BASE}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (response.status === 401) { window.location.href = '/login'; throw new Error('Unauthorized'); }
+
+  if (response.status === 401 && !retried) {
+    const newToken = await refreshAccessToken();
+    if (newToken) return downloadXlsx(path, filename, true);
+    redirectToLogin();
+    throw new Error('Unauthorized');
+  }
+  if (response.status === 401) {
+    redirectToLogin();
+    throw new Error('Unauthorized');
+  }
   if (!response.ok) throw new Error(`Export failed: ${response.status}`);
 
   const blob = await response.blob();
@@ -161,7 +224,7 @@ export const exportMonthlyXlsx = async (mesAno: string, columns: string[]) => {
   const params = new URLSearchParams({ mes_ano: mesAno });
   if (columns.length) params.set('columns', columns.join(','));
   await downloadXlsx(
-    `${API_BASE}/export/monthly?${params}`,
+    `/export/monthly?${params}`,
     `registros_mensais_${mesAno || 'todos'}.xlsx`,
   );
 };
@@ -170,7 +233,7 @@ export const exportRentabilidadeXlsx = async (mesAno: string, columns: string[])
   const params = new URLSearchParams({ mes_ano: mesAno });
   if (columns.length) params.set('columns', columns.join(','));
   await downloadXlsx(
-    `${API_BASE}/export/rentabilidade?${params}`,
+    `/export/rentabilidade?${params}`,
     `faturamento_mensal_${mesAno}.xlsx`,
   );
 };
