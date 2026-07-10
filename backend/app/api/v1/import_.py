@@ -372,6 +372,12 @@ def process_import(
                 except (TypeError, ValueError):
                     pass
 
+            # Replicas: custo_por_cliente ← valor_final; faturamento ← faturamento_wiipo
+            if monthly_data.get("valor_final") is not None:
+                monthly_data["custo_por_cliente"] = monthly_data["valor_final"]
+            if monthly_data.get("faturamento_wiipo") is not None:
+                monthly_data["faturamento"] = monthly_data["faturamento_wiipo"]
+
             # --- Sanitize CNPJ ---
             if company_data.get("cnpj"):
                 cnpj_raw = str(company_data["cnpj"]).strip()

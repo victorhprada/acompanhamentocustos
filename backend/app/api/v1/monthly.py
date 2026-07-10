@@ -24,7 +24,7 @@ def get_future_months(mes_ano: str) -> list[str]:
 
 
 def apply_computed_dependentes(data: dict) -> dict:
-    """Compute derived dependentes totals when both inputs are present."""
+    """Compute derived fields when source inputs are present."""
     qtd = data.get("qtd_dependentes")
     valor = data.get("valor_por_dependente")
     if qtd is not None and valor is not None:
@@ -40,6 +40,13 @@ def apply_computed_dependentes(data: dict) -> dict:
             data["total_custo_dependentes"] = float(qtd_gp) * float(custo)
         except (TypeError, ValueError):
             pass
+
+    # Replicas for detail-only fields
+    if data.get("valor_final") is not None:
+        data["custo_por_cliente"] = data["valor_final"]
+    if data.get("faturamento_wiipo") is not None:
+        data["faturamento"] = data["faturamento_wiipo"]
+
     return data
 
 

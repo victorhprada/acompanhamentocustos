@@ -10,7 +10,15 @@ const MONTHS = [
   '2026-09-01', '2026-10-01', '2026-11-01', '2026-12-01',
 ];
 
-const COLUMN_GROUPS = {
+type ColumnDef = {
+  key: string;
+  label: string;
+  type: 'number' | 'money' | 'text';
+  computed?: boolean;
+};
+
+/** Detalhamento por Grupo — ordem e labels inalterados */
+const DETAIL_GROUPS: Record<string, ColumnDef[]> = {
   'Elegíveis': [
     { key: 'elegiveis_contrato', label: 'Elegíveis Contrato', type: 'number' },
     { key: 'elegiveis', label: 'Elegíveis', type: 'number' },
@@ -39,15 +47,50 @@ const COLUMN_GROUPS = {
     { key: 'valor_por_dependente', label: 'Valor por dependente', type: 'money' },
   ],
   'Financeiro': [
-    { key: 'mensal_x_rentabilidade', label: 'Mensal x Rentabilidade', type: 'text' },
+    { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes', type: 'money', computed: true },
     { key: 'custo_por_cliente', label: 'Custo por Cliente', type: 'money' },
     { key: 'faturamento', label: 'Faturamento', type: 'money' },
-    { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes', type: 'money', computed: true },
   ],
 };
 
-const ALL_COLUMNS = Object.values(COLUMN_GROUPS).flat();
-const MAIN_COLUMNS = ['elegiveis', 'valor_final', 'vidas_cobradas', 'faturamento'];
+/**
+ * Ordem dos inputs (tabela de edição).
+ * valor_vidas e qtd_dependentes permanecem no lugar relativo original.
+ */
+const EDITABLE_COLUMNS: ColumnDef[] = [
+  // Custo parceiro
+  { key: 'elegiveis_contrato', label: 'Elegíveis Contrato', type: 'number' },
+  { key: 'elegiveis', label: 'Elegíveis', type: 'number' },
+  { key: 'vidas_cobradas', label: 'Vidas Cobradas', type: 'number' },
+  { key: 'valor_vidas', label: 'Valor Vidas', type: 'money' },
+  { key: 'valor_elegivel', label: 'Custo por Vida', type: 'money' },
+  { key: 'valor_final', label: 'Valor Final (custo)', type: 'money' },
+  { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes', type: 'number' },
+  { key: 'custo_por_dependente', label: 'Custo por Dependente', type: 'money' },
+  { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente', type: 'money', computed: true },
+  // Carga Flex
+  { key: 'nr_cartao_contrato_flex', label: 'Nº Cartão Contrato Flex', type: 'number' },
+  { key: 'nr_cartao_carga_flex', label: 'Nº Cartão Carga Flex', type: 'number' },
+  { key: 'rs_carregado', label: 'R$ Carregado', type: 'money' },
+  { key: 'media_cartao_realizado', label: 'Média Cartão Realizado', type: 'money' },
+  { key: 'media_contratada', label: 'Média Contratada', type: 'money' },
+  // Fat Wiipo
+  { key: 'nr_vidas', label: 'Nº Vidas', type: 'number' },
+  { key: 'valor_elegivel_wiipo', label: 'Valor vida Wiipo', type: 'money' },
+  { key: 'faturamento_wiipo', label: 'Faturamento Wiipo', type: 'money' },
+  { key: 'qtd_dependentes', label: 'Qtd Dependentes', type: 'number' },
+  { key: 'valor_por_dependente', label: 'Valor por dependente', type: 'money' },
+  { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes', type: 'money', computed: true },
+  { key: 'mensal_x_rentabilidade', label: 'Mensal x Rentabilidade', type: 'text' },
+];
+
+const ALL_COLUMNS = [
+  ...EDITABLE_COLUMNS,
+  ...Object.values(DETAIL_GROUPS).flat().filter(
+    d => !EDITABLE_COLUMNS.some(e => e.key === d.key)
+  ),
+];
+const MAIN_COLUMNS = ['elegiveis', 'valor_final', 'vidas_cobradas', 'faturamento_wiipo'];
 
 function formatMonth(dateStr: string) {
   const [year, month] = dateStr.split('-');
@@ -168,6 +211,12 @@ export default function MonthTable({
       if (key === 'qtd_dependentes_gympass' || key === 'custo_por_dependente') {
         next.total_custo_dependentes = calcTotalCustoDependentes(next);
       }
+      if (key === 'valor_final') {
+        next.custo_por_cliente = value;
+      }
+      if (key === 'faturamento_wiipo') {
+        next.faturamento = value;
+      }
       return next;
     });
   };
@@ -178,11 +227,21 @@ export default function MonthTable({
       ...editForm,
       faturamento_dependentes: calcFaturamentoDependentes(editForm) || editForm.faturamento_dependentes,
       total_custo_dependentes: calcTotalCustoDependentes(editForm) || editForm.total_custo_dependentes,
+      // Replicas: custo_por_cliente ← valor_final; faturamento ← faturamento_wiipo
+      custo_por_cliente: editForm.valor_final ?? editForm.custo_por_cliente,
+      faturamento: editForm.faturamento_wiipo ?? editForm.faturamento,
     };
-    ALL_COLUMNS.forEach(f => {
-      const val = formWithCalc[f.key];
+    // Persist editable columns + replicated detail-only fields
+    const keysToSave = new Set([
+      ...EDITABLE_COLUMNS.map(f => f.key),
+      'custo_por_cliente',
+      'faturamento',
+    ]);
+    keysToSave.forEach(key => {
+      const col = ALL_COLUMNS.find(c => c.key === key);
+      const val = formWithCalc[key];
       if (val !== undefined && val !== null && val !== '') {
-        data[f.key] = f.type !== 'text' ? parseFloat(val) : val;
+        data[key] = col && col.type !== 'text' ? parseFloat(val) : val;
       }
     });
 
@@ -214,7 +273,9 @@ export default function MonthTable({
     }
   };
 
-  const visibleColumns = showAllFields ? ALL_COLUMNS : ALL_COLUMNS.filter(c => MAIN_COLUMNS.includes(c.key));
+  const visibleColumns = showAllFields
+    ? EDITABLE_COLUMNS
+    : EDITABLE_COLUMNS.filter(c => MAIN_COLUMNS.includes(c.key));
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
@@ -357,23 +418,32 @@ export default function MonthTable({
       {showAllFields && record && (
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h4 className="text-sm font-medium text-gray-700 mb-4">Detalhamento por Grupo</h4>
-          {Object.entries(COLUMN_GROUPS).map(([groupName, columns]) => (
+          {Object.entries(DETAIL_GROUPS).map(([groupName, columns]) => (
+            columns.length === 0 ? null : (
             <div key={groupName} className="mb-6 last:mb-0">
               <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2 pb-1 border-b">{groupName}</h5>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {columns.map(col => {
-                  const val = record[col.key as keyof MonthlyRecord];
+                  let val = record[col.key as keyof MonthlyRecord];
+                  // Fallbacks for replicated fields (legacy rows before auto-copy)
+                  if (col.key === 'custo_por_cliente' && (val == null || val === '')) {
+                    val = record.valor_final;
+                  }
+                  if (col.key === 'faturamento' && (val == null || val === '')) {
+                    val = record.faturamento_wiipo;
+                  }
                   return (
                     <div key={col.key} className="bg-gray-50 rounded p-3">
                       <label className="block text-xs text-gray-400 mb-1">{col.label}</label>
                       <div className="text-sm font-mono font-medium">
-                        {val != null ? formatValue(val as number, col.type) : <span className="text-gray-400">-</span>}
+                        {val != null && val !== '' ? formatValue(val as number, col.type) : <span className="text-gray-400">-</span>}
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+            )
           ))}
         </div>
       )}
