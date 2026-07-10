@@ -11,14 +11,20 @@ const API_BASE = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhos
 let _token: string | null = null;
 let _refreshPromise: Promise<string | null> | null = null;
 
-supabase.auth.onAuthStateChange((_event, session) => {
-  _token = session?.access_token ?? null;
+supabase.auth.onAuthStateChange((event, session) => {
+  // Never clear the cached token on transient null sessions (INITIAL_SESSION race).
+  // Only clear on explicit sign-out — otherwise Dashboard fires 401 and kicks to /login.
+  if (session?.access_token) {
+    _token = session.access_token;
+  } else if (event === 'SIGNED_OUT') {
+    _token = null;
+  }
 });
 
 // One-time bootstrap: if the module loads before onAuthStateChange fires (e.g.
 // during the very first render) try to read the session from storage directly.
 supabase.auth.getSession().then(({ data }) => {
-  if (data.session?.access_token && !_token) {
+  if (data.session?.access_token) {
     _token = data.session.access_token;
   }
 });
@@ -26,6 +32,7 @@ supabase.auth.getSession().then(({ data }) => {
 async function refreshAccessToken(): Promise<string | null> {
   if (_refreshPromise) return _refreshPromise;
 
+  const previous = _token;
   _refreshPromise = (async () => {
     try {
       const result = await Promise.race([
@@ -36,14 +43,13 @@ async function refreshAccessToken(): Promise<string | null> {
       ]);
       const { data, error } = result;
       if (error || !data.session?.access_token) {
-        _token = null;
-        return null;
+        return previous;
       }
       _token = data.session.access_token;
       return _token;
     } catch {
-      _token = null;
-      return null;
+      // Timeout / network: keep previous token so we don't instantly kick the user
+      return previous;
     } finally {
       _refreshPromise = null;
     }
@@ -55,17 +61,25 @@ async function refreshAccessToken(): Promise<string | null> {
 async function getToken(): Promise<string | null> {
   if (_token && !isTokenExpiringSoon(_token)) return _token;
 
-  // Token missing or about to expire — refresh proactively
+  // Prefer reading the restored session before forcing a refresh (avoids race on reload)
+  if (!_token) {
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) {
+        _token = data.session.access_token;
+        if (!isTokenExpiringSoon(_token)) return _token;
+      }
+    } catch {
+      // continue to refresh
+    }
+  }
+
   const refreshed = await refreshAccessToken();
   if (refreshed) return refreshed;
 
-  // Fallback: read whatever is still in storage
   try {
     const { data } = await supabase.auth.getSession();
-    _token = data.session?.access_token ?? null;
-    if (_token && isTokenExpiringSoon(_token)) {
-      return refreshAccessToken();
-    }
+    _token = data.session?.access_token ?? _token;
   } catch {
     // proceed without token; backend will 401
   }
@@ -97,8 +111,21 @@ async function fetchWithAuth(path: string, options?: RequestInit, retried = fals
   }
 
   if (response.status === 401 && !retried) {
+    // Re-read session then refresh before giving up
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.access_token) {
+        _token = data.session.access_token;
+      }
+    } catch {
+      // ignore
+    }
     const newToken = await refreshAccessToken();
     if (newToken && newToken !== token) {
+      return fetchWithAuth(path, options, true);
+    }
+    // Last resort: retry once with whatever token we still have from storage
+    if (_token && _token !== token) {
       return fetchWithAuth(path, options, true);
     }
     redirectToLogin();
@@ -259,5 +286,12 @@ export const exportRentabilidadeXlsx = async (mesAno: string, columns: string[])
   await downloadXlsx(
     `/export/rentabilidade?${params}`,
     `faturamento_mensal_${mesAno}.xlsx`,
+  );
+};
+
+export const exportComparacaoMesAMesXlsx = async (year: number) => {
+  await downloadXlsx(
+    `/export/comparacao-mes-a-mes?year=${year}`,
+    `comparacao_mes_a_mes_${year}.xlsx`,
   );
 };

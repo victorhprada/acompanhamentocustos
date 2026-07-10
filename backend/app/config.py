@@ -14,8 +14,14 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: Optional[str] = None
     
-    # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:3000,https://acompanhamentodecustos.vercel.app"
+    # CORS — include common local LAN hosts used by Vite
+    ALLOWED_ORIGINS: str = (
+        "http://localhost:3000,"
+        "http://127.0.0.1:3000,"
+        "http://192.168.1.200:3000,"
+        "http://192.168.1.55:3000,"
+        "https://acompanhamentodecustos.vercel.app"
+    )
 
     # Auth
     SECRET_KEY: str

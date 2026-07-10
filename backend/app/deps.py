@@ -12,7 +12,8 @@ def verify_token(authorization: Optional[str] = Header(None)):
         raise HTTPException(status_code=401, detail="Not authenticated")
     token = authorization[7:]
     try:
-        client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        # Service role client is more reliable for server-side JWT validation
+        client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
         user_response = client.auth.get_user(token)
         if not user_response.user:
             raise HTTPException(status_code=401, detail="Invalid token")

@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
 import CompaniesList from './pages/Companies/CompaniesList';
 import CompanyDetail from './pages/Companies/CompanyDetail';
@@ -9,7 +9,7 @@ import AuditLog from './pages/AuditLog';
 import ExportModal from './components/ExportModal';
 import ExportRentabilidadeModal from './components/ExportRentabilidadeModal';
 import DashboardHistoryCharts, { HistoryPoint } from './components/DashboardHistoryCharts';
-import { getDashboard, getDashboardHistory } from './services/api';
+import { getDashboard, getDashboardHistory, exportComparacaoMesAMesXlsx } from './services/api';
 import { supabase } from './lib/supabase';
 import { IDLE_TIMEOUT_MS } from './lib/session';
 
@@ -52,7 +52,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
       setUser(profile as User);
     } catch (error) {
       console.error('Failed to load user profile:', error);
-      setUser(null);
+      // Keep existing user on transient profile errors — don't kick to login
     } finally {
       setLoading(false);
       profileLoadingRef.current = false;
@@ -334,6 +334,7 @@ function Dashboard() {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [showExport, setShowExport] = useState(false);
   const [showExportRentabilidade, setShowExportRentabilidade] = useState(false);
+  const [exportingComparacao, setExportingComparacao] = useState(false);
   const MESES_PT = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -380,6 +381,18 @@ function Dashboard() {
 
   const formatNumber = (val: number) => {
     return new Intl.NumberFormat('pt-BR').format(val || 0);
+  };
+
+  const handleExportComparacao = async () => {
+    setExportingComparacao(true);
+    try {
+      await exportComparacaoMesAMesXlsx(selectedYear);
+      toast.success('Comparação mês a mês exportada');
+    } catch {
+      toast.error('Erro ao exportar comparação. Tente novamente.');
+    } finally {
+      setExportingComparacao(false);
+    }
   };
 
   return (
@@ -462,7 +475,7 @@ function Dashboard() {
           </div>
 
           {/* Export buttons */}
-          <div className="mt-6 flex gap-3">
+          <div className="mt-6 flex gap-3 flex-wrap">
             <button
               onClick={() => setShowExport(true)}
               className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
@@ -474,6 +487,13 @@ function Dashboard() {
               className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm"
             >
               📊 Faturamento Mensal
+            </button>
+            <button
+              onClick={handleExportComparacao}
+              disabled={exportingComparacao}
+              className="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition text-sm disabled:opacity-50"
+            >
+              {exportingComparacao ? 'Exportando...' : '📈 Comparação Mês a Mês'}
             </button>
           </div>
 
