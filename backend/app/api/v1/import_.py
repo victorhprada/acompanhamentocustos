@@ -25,6 +25,7 @@ COMPANY_FIELDS = {
 MONTHLY_FIELDS = {
     "elegiveis_contrato", "elegiveis", "valor_elegivel", "valor_final",
     "vidas_cobradas", "valor_vidas",
+    "qtd_dependentes_gympass", "custo_por_dependente", "total_custo_dependentes",
     "nr_cartao_contrato_flex", "nr_cartao_carga_flex", "rs_carregado",
     "media_cartao_realizado", "media_contratada", "nr_vidas", "valor_elegivel_wiipo",
     "faturamento_wiipo", "qtd_dependentes", "valor_por_dependente",
@@ -354,12 +355,20 @@ def process_import(
             company_data = {k: v for k, v in row_data.items() if k in COMPANY_FIELDS}
             monthly_data = {k: v for k, v in row_data.items() if k in MONTHLY_FIELDS}
 
-            # Auto-calc faturamento_dependentes when both inputs are present
+            # Auto-calc dependentes totals when both inputs are present
             qtd = monthly_data.get("qtd_dependentes")
             valor = monthly_data.get("valor_por_dependente")
             if qtd is not None and valor is not None and monthly_data.get("faturamento_dependentes") is None:
                 try:
                     monthly_data["faturamento_dependentes"] = float(qtd) * float(valor)
+                except (TypeError, ValueError):
+                    pass
+
+            qtd_gp = monthly_data.get("qtd_dependentes_gympass")
+            custo = monthly_data.get("custo_por_dependente")
+            if qtd_gp is not None and custo is not None and monthly_data.get("total_custo_dependentes") is None:
+                try:
+                    monthly_data["total_custo_dependentes"] = float(qtd_gp) * float(custo)
                 except (TypeError, ValueError):
                     pass
 

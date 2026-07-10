@@ -20,6 +20,9 @@ const COLUMN_GROUPS = {
   'Gympass/Totalpass': [
     { key: 'vidas_cobradas', label: 'Vidas Cobradas', type: 'number' },
     { key: 'valor_vidas', label: 'Valor Vidas', type: 'money' },
+    { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes', type: 'number' },
+    { key: 'custo_por_dependente', label: 'Custo por Dependente', type: 'money' },
+    { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente', type: 'money', computed: true },
   ],
   'Flex': [
     { key: 'nr_cartao_contrato_flex', label: 'Nº Cartão Contrato Flex', type: 'number' },
@@ -146,11 +149,24 @@ export default function MonthTable({
     return Number.isFinite(product) ? String(product) : '';
   };
 
+  const calcTotalCustoDependentes = (form: Record<string, any>) => {
+    const qtd = form.qtd_dependentes_gympass;
+    const custo = form.custo_por_dependente;
+    if (qtd === undefined || qtd === null || qtd === '' || custo === undefined || custo === null || custo === '') {
+      return '';
+    }
+    const product = parseFloat(qtd) * parseFloat(custo);
+    return Number.isFinite(product) ? String(product) : '';
+  };
+
   const updateEditField = (key: string, value: string) => {
     setEditForm(prev => {
       const next = { ...prev, [key]: value };
       if (key === 'qtd_dependentes' || key === 'valor_por_dependente') {
         next.faturamento_dependentes = calcFaturamentoDependentes(next);
+      }
+      if (key === 'qtd_dependentes_gympass' || key === 'custo_por_dependente') {
+        next.total_custo_dependentes = calcTotalCustoDependentes(next);
       }
       return next;
     });
@@ -161,6 +177,7 @@ export default function MonthTable({
     const formWithCalc: Record<string, any> = {
       ...editForm,
       faturamento_dependentes: calcFaturamentoDependentes(editForm) || editForm.faturamento_dependentes,
+      total_custo_dependentes: calcTotalCustoDependentes(editForm) || editForm.total_custo_dependentes,
     };
     ALL_COLUMNS.forEach(f => {
       const val = formWithCalc[f.key];
@@ -266,11 +283,19 @@ export default function MonthTable({
                         <input
                           type="number"
                           step="any"
-                          value={calcFaturamentoDependentes(editForm) || editForm[col.key] || ''}
+                          value={
+                            col.key === 'total_custo_dependentes'
+                              ? (calcTotalCustoDependentes(editForm) || editForm[col.key] || '')
+                              : (calcFaturamentoDependentes(editForm) || editForm[col.key] || '')
+                          }
                           readOnly
                           className="w-full border rounded px-2 py-1 text-right bg-gray-100 text-gray-600 focus:outline-none text-xs"
                           placeholder={col.label}
-                          title="Calculado automaticamente: Qtd Dependentes × Valor por dependente"
+                          title={
+                            col.key === 'total_custo_dependentes'
+                              ? 'Calculado automaticamente: Qtd de Dependentes × Custo por Dependente'
+                              : 'Calculado automaticamente: Qtd Dependentes × Valor por dependente'
+                          }
                         />
                       ) : (
                         <input

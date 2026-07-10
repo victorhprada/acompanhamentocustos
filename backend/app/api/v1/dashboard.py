@@ -43,6 +43,7 @@ def get_dashboard(
             "vidas_cobradas,"
             "valor_vidas,"
             "custo_por_cliente,"
+            "total_custo_dependentes,"
             "faturamento,"
             "faturamento_dependentes,"
             "mes_ano"
@@ -63,7 +64,7 @@ def get_dashboard(
     for rec in records:
         total_vidas_cobradas += rec.get("vidas_cobradas") or 0
         total_valor_vidas += rec.get("valor_vidas") or 0
-        total_custo_por_cliente += rec.get("custo_por_cliente") or 0
+        total_custo_por_cliente += (rec.get("custo_por_cliente") or 0) + (rec.get("total_custo_dependentes") or 0)
         total_faturamento += (rec.get("faturamento") or 0) + (rec.get("faturamento_dependentes") or 0)
 
     # Get inactive companies count

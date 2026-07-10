@@ -24,6 +24,9 @@ const COLUMN_GROUPS = [
     columns: [
       { key: 'vidas_cobradas', label: 'Vidas Cobradas' },
       { key: 'valor_vidas', label: 'Valor Vidas' },
+      { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes' },
+      { key: 'custo_por_dependente', label: 'Custo por Dependente' },
+      { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente' },
     ],
   },
   {

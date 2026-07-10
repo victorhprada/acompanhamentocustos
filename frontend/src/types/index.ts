@@ -26,6 +26,9 @@ export interface MonthlyRecord {
   valor_final?: number;
   vidas_cobradas?: number;
   valor_vidas?: number;
+  qtd_dependentes_gympass?: number;
+  custo_por_dependente?: number;
+  total_custo_dependentes?: number;
   nr_cartao_contrato_flex?: number;
   nr_cartao_carga_flex?: number;
   rs_carregado?: number;
