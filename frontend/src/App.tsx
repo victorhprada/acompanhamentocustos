@@ -8,7 +8,8 @@ import Login from './pages/Login';
 import AuditLog from './pages/AuditLog';
 import ExportModal from './components/ExportModal';
 import ExportRentabilidadeModal from './components/ExportRentabilidadeModal';
-import { getDashboard } from './services/api';
+import DashboardHistoryCharts, { HistoryPoint } from './components/DashboardHistoryCharts';
+import { getDashboard, getDashboardHistory } from './services/api';
 import { supabase } from './lib/supabase';
 import { IDLE_TIMEOUT_MS } from './lib/session';
 
@@ -329,6 +330,8 @@ function App() {
 function Dashboard() {
   const [kpis, setKpis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [history, setHistory] = useState<HistoryPoint[] | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [showExport, setShowExport] = useState(false);
   const [showExportRentabilidade, setShowExportRentabilidade] = useState(false);
   const MESES_PT = [
@@ -359,6 +362,17 @@ function Dashboard() {
       .catch(e => console.error('Failed to fetch dashboard:', e))
       .finally(() => setLoading(false));
   }, [selectedMonth]);
+
+  useEffect(() => {
+    setHistoryLoading(true);
+    getDashboardHistory(selectedYear)
+      .then(data => setHistory(data.series))
+      .catch(e => {
+        console.error('Failed to fetch dashboard history:', e);
+        setHistory(null);
+      })
+      .finally(() => setHistoryLoading(false));
+  }, [selectedYear]);
 
   const formatMoney = (val: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
@@ -469,6 +483,12 @@ function Dashboard() {
           {showExportRentabilidade && (
             <ExportRentabilidadeModal mesAno={selectedMonth} onClose={() => setShowExportRentabilidade(false)} />
           )}
+
+          <DashboardHistoryCharts
+            year={selectedYear}
+            series={history}
+            loading={historyLoading}
+          />
         </>
       ) : (
         <div className="text-center py-12 text-gray-400">Erro ao carregar dados</div>

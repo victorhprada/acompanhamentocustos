@@ -28,7 +28,13 @@ async function refreshAccessToken(): Promise<string | null> {
 
   _refreshPromise = (async () => {
     try {
-      const { data, error } = await supabase.auth.refreshSession();
+      const result = await Promise.race([
+        supabase.auth.refreshSession(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('refresh timeout')), 10_000)
+        ),
+      ]);
+      const { data, error } = result;
       if (error || !data.session?.access_token) {
         _token = null;
         return null;
@@ -82,11 +88,17 @@ async function fetchWithAuth(path: string, options?: RequestInit, retried = fals
   }
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  } catch (err) {
+    // Network failure — surface quickly instead of leaving UI on "Carregando..."
+    throw err instanceof Error ? err : new Error('Network error');
+  }
 
   if (response.status === 401 && !retried) {
     const newToken = await refreshAccessToken();
-    if (newToken) {
+    if (newToken && newToken !== token) {
       return fetchWithAuth(path, options, true);
     }
     redirectToLogin();
@@ -154,6 +166,18 @@ export const deleteMonthlyRecord = (id: string, propagate = true) =>
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 export const getDashboard = (mesAno: string) =>
   fetchApi<any>(`/dashboard?mes_ano=${mesAno}`);
+
+export const getDashboardHistory = (year: number) =>
+  fetchApi<{
+    year: number;
+    series: Array<{
+      mes_ano: string;
+      total_vidas_cobradas: number;
+      total_valor_vidas: number;
+      total_custo_por_cliente: number;
+      total_faturamento: number;
+    }>;
+  }>(`/dashboard/history?year=${year}`);
 
 // ─── Import ───────────────────────────────────────────────────────────────────
 export const uploadImportFile = async (file: File) => {
