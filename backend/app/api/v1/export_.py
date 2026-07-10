@@ -380,7 +380,7 @@ def build_comparacao_mes_a_mes_xlsx(year: int, months: list[int], by_month: dict
         cell.alignment = header_align
 
     metric_rows = [
-        ("Empresas ativas", "empresas_ativas"),
+        ("Empresas matriz", "empresas_ativas"),
         ("Empresas filiais", "empresas_filiais"),
         ("Total de empresas", "total_empresas"),
         ("total de vidas cobradas", "total_vidas_cobradas"),
@@ -422,11 +422,17 @@ def export_comparacao_mes_a_mes_xlsx(
 ):
     """
     Month-to-month KPI matrix for the year.
-    Uses the same base as Faturamento Mensal: records with
-    mensal_x_rentabilidade = 'Faturamento mensal'.
+    Same universe as the Dashboard: active companies with a monthly record in each month.
     """
     try:
         from datetime import date
+        from app.api.v1.dashboard import (
+            RECORD_SELECT,
+            accumulate_kpi_record,
+            empty_kpi_bucket,
+            fetch_active_company_tipos,
+            finalize_kpi_bucket,
+        )
 
         today = date.today()
         if year > today.year:
@@ -436,90 +442,38 @@ def export_comparacao_mes_a_mes_xlsx(
         else:
             months = list(range(1, today.month + 1))
 
+        company_tipos = fetch_active_company_tipos(supabase)
+        active_company_ids = list(company_tipos.keys())
+
         by_month: dict[str, dict] = {
-            f"{year}-{str(m).zfill(2)}-01": {
-                "empresas_ativas": 0,
-                "empresas_filiais": 0,
-                "total_empresas": 0,
-                "total_vidas_cobradas": 0,
-                "total_valor_vidas": 0.0,
-                "total_custo_por_cliente": 0.0,
-                "total_faturamento": 0.0,
-                "_company_ids": set(),
-            }
+            f"{year}-{str(m).zfill(2)}-01": empty_kpi_bucket()
             for m in months
         }
 
-        if months:
+        if months and active_company_ids:
             start = f"{year}-{str(months[0]).zfill(2)}-01"
             end = f"{year}-{str(months[-1]).zfill(2)}-01"
             result = (
                 supabase.table("monthly_records")
-                .select(
-                    "company_id,"
-                    "vidas_cobradas,"
-                    "valor_vidas,"
-                    "custo_por_cliente,"
-                    "total_custo_dependentes,"
-                    "faturamento,"
-                    "faturamento_dependentes,"
-                    "mes_ano"
-                )
-                .eq("mensal_x_rentabilidade", "Faturamento mensal")
+                .select(RECORD_SELECT)
+                .in_("company_id", active_company_ids)
                 .gte("mes_ano", start)
                 .lte("mes_ano", end)
                 .execute()
             )
-            records = result.data or []
-
-            company_ids = {r["company_id"] for r in records if r.get("company_id")}
-            company_tipo: dict[str, str] = {}
-            if company_ids:
-                companies_res = (
-                    supabase.table("companies")
-                    .select("id, tipo_empresa")
-                    .in_("id", list(company_ids))
-                    .execute()
-                )
-                for c in companies_res.data or []:
-                    company_tipo[c["id"]] = c.get("tipo_empresa") or "matriz"
-
-            for rec in records:
+            for rec in result.data or []:
                 raw = rec.get("mes_ano") or ""
                 key = raw[:10] if len(raw) >= 10 else raw
                 if key not in by_month:
                     continue
-                bucket = by_month[key]
-                cid = rec.get("company_id")
-                if cid:
-                    bucket["_company_ids"].add(cid)
-                bucket["total_vidas_cobradas"] += rec.get("vidas_cobradas") or 0
-                bucket["total_valor_vidas"] += rec.get("valor_vidas") or 0
-                bucket["total_custo_por_cliente"] += (
-                    (rec.get("custo_por_cliente") or 0) + (rec.get("total_custo_dependentes") or 0)
-                )
-                bucket["total_faturamento"] += (
-                    (rec.get("faturamento") or 0) + (rec.get("faturamento_dependentes") or 0)
-                )
+                accumulate_kpi_record(by_month[key], rec)
 
-            for bucket in by_month.values():
-                matriz = 0
-                filial = 0
-                for cid in bucket["_company_ids"]:
-                    if company_tipo.get(cid) == "filial":
-                        filial += 1
-                    else:
-                        matriz += 1
-                bucket["empresas_ativas"] = matriz
-                bucket["empresas_filiais"] = filial
-                bucket["total_empresas"] = matriz + filial
-                bucket["total_vidas_cobradas"] = int(bucket["total_vidas_cobradas"])
-                bucket["total_valor_vidas"] = round(bucket["total_valor_vidas"], 2)
-                bucket["total_custo_por_cliente"] = round(bucket["total_custo_por_cliente"], 2)
-                bucket["total_faturamento"] = round(bucket["total_faturamento"], 2)
-                del bucket["_company_ids"]
+        finalized = {
+            key: finalize_kpi_bucket(bucket, company_tipos)
+            for key, bucket in by_month.items()
+        }
 
-        content = build_comparacao_mes_a_mes_xlsx(year, months, by_month)
+        content = build_comparacao_mes_a_mes_xlsx(year, months, finalized)
         return xlsx_response(content, f"comparacao_mes_a_mes_{year}.xlsx")
     except HTTPException:
         raise
