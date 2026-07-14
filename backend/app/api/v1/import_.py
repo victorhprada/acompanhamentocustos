@@ -355,7 +355,17 @@ def process_import(
             company_data = {k: v for k, v in row_data.items() if k in COMPANY_FIELDS}
             monthly_data = {k: v for k, v in row_data.items() if k in MONTHLY_FIELDS}
 
-            # Auto-calc dependentes totals when both inputs are present
+            # Auto-calc derived fields (Wellhub PRO RATA + dependentes + réplicas)
+            DIAS_MES = 30
+
+            def _as_float(value):
+                if value is None or value == "":
+                    return None
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return None
+
             qtd = monthly_data.get("qtd_dependentes")
             valor = monthly_data.get("valor_por_dependente")
             if qtd is not None and valor is not None and monthly_data.get("faturamento_dependentes") is None:
@@ -364,17 +374,32 @@ def process_import(
                 except (TypeError, ValueError):
                     pass
 
-            qtd_gp = monthly_data.get("qtd_dependentes_gympass")
-            custo = monthly_data.get("custo_por_dependente")
-            if qtd_gp is not None and custo is not None and monthly_data.get("total_custo_dependentes") is None:
-                try:
-                    monthly_data["total_custo_dependentes"] = float(qtd_gp) * float(custo)
-                except (TypeError, ValueError):
-                    pass
+            valor_custo = _as_float(monthly_data.get("valor_elegivel"))
+            vidas = _as_float(monthly_data.get("vidas_cobradas"))
+            pro_rata = _as_float(monthly_data.get("valor_vidas"))
+            if (
+                valor_custo is not None
+                and vidas is not None
+                and pro_rata is not None
+                and monthly_data.get("valor_final") is None
+            ):
+                monthly_data["valor_final"] = (valor_custo * vidas / DIAS_MES) * pro_rata
 
-            # Replicas: custo_por_cliente ← valor_final; faturamento ← faturamento_wiipo
-            if monthly_data.get("valor_final") is not None:
-                monthly_data["custo_por_cliente"] = monthly_data["valor_final"]
+            qtd_gp = _as_float(monthly_data.get("qtd_dependentes_gympass"))
+            custo = _as_float(monthly_data.get("custo_por_dependente"))
+            if (
+                qtd_gp is not None
+                and custo is not None
+                and pro_rata is not None
+                and monthly_data.get("total_custo_dependentes") is None
+            ):
+                monthly_data["total_custo_dependentes"] = (custo * qtd_gp / DIAS_MES) * pro_rata
+
+            valor_final = _as_float(monthly_data.get("valor_final"))
+            total_deps = _as_float(monthly_data.get("total_custo_dependentes"))
+            if valor_final is not None or total_deps is not None:
+                monthly_data["custo_por_cliente"] = (valor_final or 0) + (total_deps or 0)
+
             if monthly_data.get("faturamento_wiipo") is not None:
                 monthly_data["faturamento"] = monthly_data["faturamento_wiipo"]
 

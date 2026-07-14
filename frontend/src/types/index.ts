@@ -43,6 +43,7 @@ export interface MonthlyRecord {
   custo_por_cliente?: number;
   faturamento?: number;
   faturamento_dependentes?: number;
+  observacao?: string;
   created_at: string;
   updated_at: string;
 }

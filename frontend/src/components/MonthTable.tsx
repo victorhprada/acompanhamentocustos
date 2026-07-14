@@ -23,11 +23,11 @@ const DETAIL_GROUPS: Record<string, ColumnDef[]> = {
     { key: 'elegiveis_contrato', label: 'Elegíveis Contrato', type: 'number' },
     { key: 'elegiveis', label: 'Elegíveis', type: 'number' },
     { key: 'valor_elegivel', label: 'Valor Elegível', type: 'money' },
-    { key: 'valor_final', label: 'Valor Final', type: 'money' },
+    { key: 'valor_final', label: 'Valor Final', type: 'money', computed: true },
   ],
   'Gympass/Totalpass': [
     { key: 'vidas_cobradas', label: 'Vidas Cobradas', type: 'number' },
-    { key: 'valor_vidas', label: 'Valor Vidas', type: 'money' },
+    { key: 'valor_vidas', label: 'PRO RATA', type: 'number' },
     { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes', type: 'number' },
     { key: 'custo_por_dependente', label: 'Custo por Dependente', type: 'money' },
     { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente', type: 'money', computed: true },
@@ -48,23 +48,25 @@ const DETAIL_GROUPS: Record<string, ColumnDef[]> = {
   ],
   'Financeiro': [
     { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes', type: 'money', computed: true },
-    { key: 'custo_por_cliente', label: 'Custo por Cliente', type: 'money' },
+    { key: 'custo_por_cliente', label: 'Custo por Cliente', type: 'money', computed: true },
     { key: 'faturamento', label: 'Faturamento', type: 'money' },
   ],
 };
 
+const DIAS_MES = 30;
+
 /**
  * Ordem dos inputs (tabela de edição).
- * valor_vidas e qtd_dependentes permanecem no lugar relativo original.
+ * valor_vidas (PRO RATA) e qtd_dependentes permanecem no lugar relativo original.
  */
 const EDITABLE_COLUMNS: ColumnDef[] = [
   // Custo parceiro
   { key: 'elegiveis_contrato', label: 'Elegíveis Contrato', type: 'number' },
   { key: 'elegiveis', label: 'Elegíveis', type: 'number' },
   { key: 'vidas_cobradas', label: 'Vidas Cobradas', type: 'number' },
-  { key: 'valor_vidas', label: 'Valor Vidas', type: 'money' },
+  { key: 'valor_vidas', label: 'PRO RATA', type: 'number' },
   { key: 'valor_elegivel', label: 'Custo por Vida', type: 'money' },
-  { key: 'valor_final', label: 'Valor Final (custo)', type: 'money' },
+  { key: 'valor_final', label: 'Valor Final (custo)', type: 'money', computed: true },
   { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes', type: 'number' },
   { key: 'custo_por_dependente', label: 'Custo por Dependente', type: 'money' },
   { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente', type: 'money', computed: true },
@@ -192,15 +194,56 @@ export default function MonthTable({
     return Number.isFinite(product) ? String(product) : '';
   };
 
+  const calcValorFinal = (form: Record<string, any>) => {
+    const custo = form.valor_elegivel;
+    const vidas = form.vidas_cobradas;
+    const proRata = form.valor_vidas;
+    if (
+      custo === undefined || custo === null || custo === '' ||
+      vidas === undefined || vidas === null || vidas === '' ||
+      proRata === undefined || proRata === null || proRata === ''
+    ) {
+      return '';
+    }
+    const result = (parseFloat(custo) * parseFloat(vidas) / DIAS_MES) * parseFloat(proRata);
+    return Number.isFinite(result) ? String(result) : '';
+  };
+
   const calcTotalCustoDependentes = (form: Record<string, any>) => {
     const qtd = form.qtd_dependentes_gympass;
     const custo = form.custo_por_dependente;
-    if (qtd === undefined || qtd === null || qtd === '' || custo === undefined || custo === null || custo === '') {
+    const proRata = form.valor_vidas;
+    if (
+      qtd === undefined || qtd === null || qtd === '' ||
+      custo === undefined || custo === null || custo === '' ||
+      proRata === undefined || proRata === null || proRata === ''
+    ) {
       return '';
     }
-    const product = parseFloat(qtd) * parseFloat(custo);
-    return Number.isFinite(product) ? String(product) : '';
+    const result = (parseFloat(custo) * parseFloat(qtd) / DIAS_MES) * parseFloat(proRata);
+    return Number.isFinite(result) ? String(result) : '';
   };
+
+  const calcCustoPorCliente = (form: Record<string, any>) => {
+    const valorFinal = calcValorFinal(form) || form.valor_final;
+    const totalDeps = calcTotalCustoDependentes(form) || form.total_custo_dependentes;
+    if (
+      (valorFinal === undefined || valorFinal === null || valorFinal === '') &&
+      (totalDeps === undefined || totalDeps === null || totalDeps === '')
+    ) {
+      return '';
+    }
+    const sum = (parseFloat(valorFinal) || 0) + (parseFloat(totalDeps) || 0);
+    return Number.isFinite(sum) ? String(sum) : '';
+  };
+
+  const WELLHUB_INPUT_KEYS = new Set([
+    'valor_elegivel',
+    'vidas_cobradas',
+    'valor_vidas',
+    'qtd_dependentes_gympass',
+    'custo_por_dependente',
+  ]);
 
   const updateEditField = (key: string, value: string) => {
     setEditForm(prev => {
@@ -208,11 +251,10 @@ export default function MonthTable({
       if (key === 'qtd_dependentes' || key === 'valor_por_dependente') {
         next.faturamento_dependentes = calcFaturamentoDependentes(next);
       }
-      if (key === 'qtd_dependentes_gympass' || key === 'custo_por_dependente') {
+      if (WELLHUB_INPUT_KEYS.has(key)) {
+        next.valor_final = calcValorFinal(next);
         next.total_custo_dependentes = calcTotalCustoDependentes(next);
-      }
-      if (key === 'valor_final') {
-        next.custo_por_cliente = value;
+        next.custo_por_cliente = calcCustoPorCliente(next);
       }
       if (key === 'faturamento_wiipo') {
         next.faturamento = value;
@@ -226,22 +268,29 @@ export default function MonthTable({
     const formWithCalc: Record<string, any> = {
       ...editForm,
       faturamento_dependentes: calcFaturamentoDependentes(editForm) || editForm.faturamento_dependentes,
+      valor_final: calcValorFinal(editForm) || editForm.valor_final,
       total_custo_dependentes: calcTotalCustoDependentes(editForm) || editForm.total_custo_dependentes,
-      // Replicas: custo_por_cliente ← valor_final; faturamento ← faturamento_wiipo
-      custo_por_cliente: editForm.valor_final ?? editForm.custo_por_cliente,
+      custo_por_cliente: calcCustoPorCliente(editForm) || editForm.custo_por_cliente,
       faturamento: editForm.faturamento_wiipo ?? editForm.faturamento,
     };
-    // Persist editable columns + replicated detail-only fields
+    // Persist editable columns + computed detail-only fields + observacao
     const keysToSave = new Set([
       ...EDITABLE_COLUMNS.map(f => f.key),
       'custo_por_cliente',
       'faturamento',
+      'observacao',
     ]);
     keysToSave.forEach(key => {
       const col = ALL_COLUMNS.find(c => c.key === key);
       const val = formWithCalc[key];
       if (val !== undefined && val !== null && val !== '') {
-        data[key] = col && col.type !== 'text' ? parseFloat(val) : val;
+        if (key === 'observacao' || (col && col.type === 'text')) {
+          data[key] = val;
+        } else {
+          data[key] = parseFloat(val);
+        }
+      } else if (key === 'observacao' && val === '') {
+        data[key] = null;
       }
     });
 
@@ -345,7 +394,9 @@ export default function MonthTable({
                           type="number"
                           step="any"
                           value={
-                            col.key === 'total_custo_dependentes'
+                            col.key === 'valor_final'
+                              ? (calcValorFinal(editForm) || editForm[col.key] || '')
+                              : col.key === 'total_custo_dependentes'
                               ? (calcTotalCustoDependentes(editForm) || editForm[col.key] || '')
                               : (calcFaturamentoDependentes(editForm) || editForm[col.key] || '')
                           }
@@ -353,15 +404,17 @@ export default function MonthTable({
                           className="w-full border rounded px-2 py-1 text-right bg-gray-100 text-gray-600 focus:outline-none text-xs"
                           placeholder={col.label}
                           title={
-                            col.key === 'total_custo_dependentes'
-                              ? 'Calculado automaticamente: Qtd de Dependentes × Custo por Dependente'
+                            col.key === 'valor_final'
+                              ? 'Calculado: (Custo por Vida × Vidas Cobradas / 30) × PRO RATA'
+                              : col.key === 'total_custo_dependentes'
+                              ? 'Calculado: (Custo por Dependente × Qtd de Dependentes / 30) × PRO RATA'
                               : 'Calculado automaticamente: Qtd Dependentes × Valor por dependente'
                           }
                         />
                       ) : (
                         <input
                           type={col.type === 'text' ? 'text' : 'number'}
-                          step="any"
+                          step={col.key === 'valor_vidas' ? '1' : 'any'}
                           value={editForm[col.key] ?? ''}
                           onChange={e => updateEditField(col.key, e.target.value)}
                           className="w-full border rounded px-2 py-1 text-right focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
@@ -414,8 +467,8 @@ export default function MonthTable({
         </div>
       </div>
 
-      {/* Field groups detail - shown when showAllFields and has data */}
-      {showAllFields && record && (
+      {/* Field groups detail - shown when showAllFields; edit mode also shows Observações */}
+      {showAllFields && (record || editing) && (
         <div className="bg-white rounded-lg shadow p-4 mb-4">
           <h4 className="text-sm font-medium text-gray-700 mb-4">Detalhamento por Grupo</h4>
           {Object.entries(DETAIL_GROUPS).map(([groupName, columns]) => (
@@ -424,13 +477,26 @@ export default function MonthTable({
               <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2 pb-1 border-b">{groupName}</h5>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
                 {columns.map(col => {
-                  let val = record[col.key as keyof MonthlyRecord];
-                  // Fallbacks for replicated fields (legacy rows before auto-copy)
-                  if (col.key === 'custo_por_cliente' && (val == null || val === '')) {
-                    val = record.valor_final;
-                  }
-                  if (col.key === 'faturamento' && (val == null || val === '')) {
-                    val = record.faturamento_wiipo;
+                  const source = editing ? editForm : record;
+                  if (!source) return null;
+                  let val = source[col.key as keyof typeof source];
+                  if (editing) {
+                    if (col.key === 'valor_final') val = calcValorFinal(editForm) || editForm.valor_final;
+                    if (col.key === 'total_custo_dependentes') val = calcTotalCustoDependentes(editForm) || editForm.total_custo_dependentes;
+                    if (col.key === 'custo_por_cliente') val = calcCustoPorCliente(editForm) || editForm.custo_por_cliente;
+                    if (col.key === 'faturamento_dependentes') val = calcFaturamentoDependentes(editForm) || editForm.faturamento_dependentes;
+                  } else if (record) {
+                    // Fallbacks for legacy rows before auto-copy / new formulas
+                    if (col.key === 'custo_por_cliente' && (val == null || val === '')) {
+                      const vf = Number(record.valor_final) || 0;
+                      const td = Number(record.total_custo_dependentes) || 0;
+                      val = (record.valor_final != null || record.total_custo_dependentes != null)
+                        ? vf + td
+                        : undefined;
+                    }
+                    if (col.key === 'faturamento' && (val == null || val === '')) {
+                      val = record.faturamento_wiipo;
+                    }
                   }
                   return (
                     <div key={col.key} className="bg-gray-50 rounded p-3">
@@ -445,6 +511,24 @@ export default function MonthTable({
             </div>
             )
           ))}
+
+          {/* Observações — só no detalhamento; não propaga entre meses */}
+          <div className="mb-0">
+            <h5 className="text-xs font-semibold text-gray-500 uppercase mb-2 pb-1 border-b">Observações</h5>
+            {editing ? (
+              <textarea
+                value={editForm.observacao ?? ''}
+                onChange={e => setEditForm(prev => ({ ...prev, observacao: e.target.value }))}
+                rows={4}
+                className="w-full border rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                placeholder="Observações deste mês (não são replicadas para outros meses)"
+              />
+            ) : (
+              <div className="bg-gray-50 rounded p-3 text-sm whitespace-pre-wrap">
+                {record?.observacao ? record.observacao : <span className="text-gray-400">Nenhuma observação</span>}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

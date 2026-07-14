@@ -44,9 +44,8 @@ def accumulate_kpi_record(bucket: dict, rec: dict) -> None:
         bucket["_company_ids"].add(cid)
     bucket["total_vidas_cobradas"] += rec.get("vidas_cobradas") or 0
     bucket["total_valor_vidas"] += rec.get("valor_vidas") or 0
-    bucket["total_custo_por_cliente"] += (
-        (rec.get("custo_por_cliente") or 0) + (rec.get("total_custo_dependentes") or 0)
-    )
+    # custo_por_cliente already includes valor_final + total_custo_dependentes
+    bucket["total_custo_por_cliente"] += rec.get("custo_por_cliente") or 0
     bucket["total_faturamento"] += (
         (rec.get("faturamento") or 0) + (rec.get("faturamento_dependentes") or 0)
     )

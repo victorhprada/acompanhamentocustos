@@ -55,7 +55,7 @@ type ChartDef = {
 
 const CHARTS: ChartDef[] = [
   { key: 'total_vidas_cobradas', title: 'Total Vidas Cobradas', color: '#2563eb' },
-  { key: 'total_valor_vidas', title: 'Total Valor Vidas', color: '#b45309', money: true },
+  { key: 'total_valor_vidas', title: 'Total PRO RATA', color: '#b45309', money: false },
   { key: 'total_custo_por_cliente', title: 'Total Custo por Cliente', color: '#059669', money: true },
   { key: 'total_faturamento', title: 'Total Faturamento', color: '#7c3aed', money: true },
 ];

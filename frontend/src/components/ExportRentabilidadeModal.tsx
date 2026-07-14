@@ -35,7 +35,7 @@ const COLUMN_GROUPS = [
     group: 'Gympass/Totalpass',
     columns: [
       { key: 'vidas_cobradas', label: 'Vidas Cobradas' },
-      { key: 'valor_vidas', label: 'Valor Vidas' },
+      { key: 'valor_vidas', label: 'PRO RATA' },
       { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes' },
       { key: 'custo_por_dependente', label: 'Custo por Dependente' },
       { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente' },

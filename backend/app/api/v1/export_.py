@@ -154,7 +154,7 @@ MONTHLY_COLUMNS: list[tuple[str, str]] = [
     ("valor_elegivel", "Valor Elegível"),
     ("valor_final", "Valor Final"),
     ("vidas_cobradas", "Vidas Cobradas"),
-    ("valor_vidas", "Valor Vidas"),
+    ("valor_vidas", "PRO RATA"),
     ("qtd_dependentes_gympass", "Qtd de Dependentes"),
     ("custo_por_dependente", "Custo por Dependente"),
     ("total_custo_dependentes", "Total de Custo por Dependente"),
@@ -195,7 +195,7 @@ RENTABILIDADE_COLUMNS: list[tuple[str, str]] = COMPANY_COLUMNS + [
     ("valor_elegivel", "Valor Elegível"),
     ("valor_final", "Valor Final"),
     ("vidas_cobradas", "Vidas Cobradas"),
-    ("valor_vidas", "Valor Vidas"),
+    ("valor_vidas", "PRO RATA"),
     ("qtd_dependentes_gympass", "Qtd de Dependentes"),
     ("custo_por_dependente", "Custo por Dependente"),
     ("total_custo_dependentes", "Total de Custo por Dependente"),
@@ -384,12 +384,12 @@ def build_comparacao_mes_a_mes_xlsx(year: int, months: list[int], by_month: dict
         ("Empresas filiais", "empresas_filiais"),
         ("Total de empresas", "total_empresas"),
         ("total de vidas cobradas", "total_vidas_cobradas"),
-        ("total valor vidas", "total_valor_vidas"),
+        ("total pro rata", "total_valor_vidas"),
         ("total custo por cliente", "total_custo_por_cliente"),
         ("total de faturamento", "total_faturamento"),
     ]
 
-    money_keys = {"total_valor_vidas", "total_custo_por_cliente", "total_faturamento"}
+    money_keys = {"total_custo_por_cliente", "total_faturamento"}
 
     for row_idx, (label, key) in enumerate(metric_rows, start=2):
         label_cell = ws.cell(row=row_idx, column=1, value=label)

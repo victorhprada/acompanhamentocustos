@@ -23,7 +23,19 @@ def get_future_months(mes_ano: str) -> list[str]:
     return [m for m in MONTHS_2026 if date.fromisoformat(m) > current_date]
 
 
-def apply_computed_dependentes(data: dict) -> dict:
+DIAS_MES = 30
+
+
+def _as_float(value) -> float | None:
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def apply_computed_fields(data: dict) -> dict:
     """Compute derived fields when source inputs are present."""
     qtd = data.get("qtd_dependentes")
     valor = data.get("valor_por_dependente")
@@ -33,21 +45,38 @@ def apply_computed_dependentes(data: dict) -> dict:
         except (TypeError, ValueError):
             pass
 
-    qtd_gp = data.get("qtd_dependentes_gympass")
-    custo = data.get("custo_por_dependente")
-    if qtd_gp is not None and custo is not None:
-        try:
-            data["total_custo_dependentes"] = float(qtd_gp) * float(custo)
-        except (TypeError, ValueError):
-            pass
+    # Wellhub PRO RATA: (custo × vidas / 30) × pro_rata
+    valor_custo = _as_float(data.get("valor_elegivel"))
+    vidas = _as_float(data.get("vidas_cobradas"))
+    pro_rata = _as_float(data.get("valor_vidas"))
+    if valor_custo is not None and vidas is not None and pro_rata is not None:
+        data["valor_final"] = (valor_custo * vidas / DIAS_MES) * pro_rata
 
-    # Replicas for detail-only fields
-    if data.get("valor_final") is not None:
-        data["custo_por_cliente"] = data["valor_final"]
+    qtd_gp = _as_float(data.get("qtd_dependentes_gympass"))
+    custo = _as_float(data.get("custo_por_dependente"))
+    if qtd_gp is not None and custo is not None and pro_rata is not None:
+        data["total_custo_dependentes"] = (custo * qtd_gp / DIAS_MES) * pro_rata
+
+    valor_final = _as_float(data.get("valor_final"))
+    total_deps = _as_float(data.get("total_custo_dependentes"))
+    if valor_final is not None or total_deps is not None:
+        data["custo_por_cliente"] = (valor_final or 0) + (total_deps or 0)
+
     if data.get("faturamento_wiipo") is not None:
         data["faturamento"] = data["faturamento_wiipo"]
 
     return data
+
+
+def without_observacao(data: dict) -> dict:
+    """Strip observacao so it is never propagated to other months."""
+    cleaned = {**data}
+    cleaned.pop("observacao", None)
+    return cleaned
+
+
+# Backwards-compatible alias
+apply_computed_dependentes = apply_computed_fields
 
 
 @router.get("/monthly", response_model=List[MonthlyRecord])
@@ -109,7 +138,7 @@ def create_monthly_record(
     if existing.data:
         raise HTTPException(status_code=400, detail="Já existe um registro para este mês")
 
-    payload = apply_computed_dependentes(record.model_dump(mode="json"))
+    payload = apply_computed_fields(record.model_dump(mode="json"))
     result = supabase.table("monthly_records").insert(payload).execute()
     if not result.data:
         raise HTTPException(status_code=400, detail="Falha ao criar registro")
@@ -117,6 +146,7 @@ def create_monthly_record(
     created = result.data[0]
 
     if propagate:
+        inherited_base = without_observacao(payload)
         for future_month in get_future_months(record.mes_ano.isoformat()):
             check = (
                 supabase.table("monthly_records")
@@ -126,7 +156,7 @@ def create_monthly_record(
                 .execute()
             )
             if not check.data:
-                inherited = {**payload, "mes_ano": future_month}
+                inherited = {**inherited_base, "mes_ano": future_month}
                 supabase.table("monthly_records").insert(inherited).execute()
 
     return created
@@ -145,13 +175,29 @@ def update_monthly_record(
         raise HTTPException(status_code=404, detail="Monthly record not found")
 
     current = existing.data[0]
-    update_data = apply_computed_dependentes(record.model_dump(mode="json", exclude_unset=True))
+    raw_update = record.model_dump(mode="json", exclude_unset=True)
+    # Merge with current so Wellhub formulas see all inputs even on partial updates
+    merged = {**current, **raw_update}
+    for key in ("id", "created_at", "updated_at", "created_by", "updated_by"):
+        merged.pop(key, None)
+    computed = apply_computed_fields(merged)
+    update_data = {**raw_update}
+    for key in (
+        "valor_final",
+        "total_custo_dependentes",
+        "custo_por_cliente",
+        "faturamento",
+        "faturamento_dependentes",
+    ):
+        if key in computed:
+            update_data[key] = computed[key]
 
     result = supabase.table("monthly_records").update(update_data).eq("id", record_id).execute()
     if not result.data:
         raise HTTPException(status_code=404, detail="Monthly record not found")
 
     if propagate and update_data:
+        propagate_data = without_observacao(update_data)
         for future_month in get_future_months(current["mes_ano"]):
             check = (
                 supabase.table("monthly_records")
@@ -161,9 +207,9 @@ def update_monthly_record(
                 .execute()
             )
             if check.data:
-                supabase.table("monthly_records").update(update_data).eq("id", check.data[0]["id"]).execute()
+                supabase.table("monthly_records").update(propagate_data).eq("id", check.data[0]["id"]).execute()
             else:
-                new_data = apply_computed_dependentes({**current, **update_data, "mes_ano": future_month})
+                new_data = apply_computed_fields({**without_observacao(current), **propagate_data, "mes_ano": future_month})
                 for key in ["id", "created_at", "updated_at", "created_by", "updated_by"]:
                     new_data.pop(key, None)
                 supabase.table("monthly_records").insert(new_data).execute()

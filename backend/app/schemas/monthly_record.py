@@ -39,6 +39,9 @@ class MonthlyRecordBase(BaseModel):
     faturamento: Optional[float] = None
     faturamento_dependentes: Optional[float] = None
 
+    # Observações (somente do mês; não propagar)
+    observacao: Optional[str] = None
+
 
 class MonthlyRecordCreate(MonthlyRecordBase):
     company_id: str
@@ -68,6 +71,7 @@ class MonthlyRecordUpdate(BaseModel):
     custo_por_cliente: Optional[float] = None
     faturamento: Optional[float] = None
     faturamento_dependentes: Optional[float] = None
+    observacao: Optional[str] = None
 
 
 class MonthlyRecord(MonthlyRecordBase):
