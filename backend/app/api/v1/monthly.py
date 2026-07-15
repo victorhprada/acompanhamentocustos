@@ -41,7 +41,7 @@ def apply_computed_fields(data: dict) -> dict:
     valor = data.get("valor_por_dependente")
     if qtd is not None and valor is not None:
         try:
-            data["faturamento_dependentes"] = float(qtd) * float(valor)
+            data["faturamento_dependentes"] = round(float(qtd) * float(valor), 2)
         except (TypeError, ValueError):
             pass
 
@@ -50,7 +50,7 @@ def apply_computed_fields(data: dict) -> dict:
     vidas = _as_float(data.get("vidas_cobradas"))
     pro_rata = _as_float(data.get("valor_vidas"))
     if valor_custo is not None and vidas is not None and pro_rata is not None:
-        data["valor_final"] = (valor_custo * vidas / DIAS_MES) * pro_rata
+        data["valor_final"] = round((valor_custo * vidas / DIAS_MES) * pro_rata, 2)
 
     qtd_gp = _as_float(data.get("qtd_dependentes_gympass"))
     custo = _as_float(data.get("custo_por_dependente"))
@@ -61,12 +61,12 @@ def apply_computed_fields(data: dict) -> dict:
     valor_final = _as_float(data.get("valor_final"))
     total_deps = _as_float(data.get("total_custo_dependentes"))
     if valor_final is not None or total_deps is not None:
-        data["custo_por_cliente"] = (valor_final or 0) + (total_deps or 0)
+        data["custo_por_cliente"] = round((valor_final or 0) + (total_deps or 0), 2)
 
     nr_vidas = _as_float(data.get("nr_vidas"))
     valor_vida_wiipo = _as_float(data.get("valor_elegivel_wiipo"))
     if nr_vidas is not None and valor_vida_wiipo is not None and pro_rata is not None:
-        data["faturamento_wiipo"] = (nr_vidas * valor_vida_wiipo / DIAS_MES) * pro_rata
+        data["faturamento_wiipo"] = round((nr_vidas * valor_vida_wiipo / DIAS_MES) * pro_rata, 2)
 
     if data.get("faturamento_wiipo") is not None:
         data["faturamento"] = data["faturamento_wiipo"]

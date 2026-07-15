@@ -370,7 +370,7 @@ def process_import(
             valor = monthly_data.get("valor_por_dependente")
             if qtd is not None and valor is not None and monthly_data.get("faturamento_dependentes") is None:
                 try:
-                    monthly_data["faturamento_dependentes"] = float(qtd) * float(valor)
+                    monthly_data["faturamento_dependentes"] = round(float(qtd) * float(valor), 2)
                 except (TypeError, ValueError):
                     pass
 
@@ -383,7 +383,7 @@ def process_import(
                 and pro_rata is not None
                 and monthly_data.get("valor_final") is None
             ):
-                monthly_data["valor_final"] = (valor_custo * vidas / DIAS_MES) * pro_rata
+                monthly_data["valor_final"] = round((valor_custo * vidas / DIAS_MES) * pro_rata, 2)
 
             qtd_gp = _as_float(monthly_data.get("qtd_dependentes_gympass"))
             custo = _as_float(monthly_data.get("custo_por_dependente"))
@@ -401,7 +401,7 @@ def process_import(
             valor_final = _as_float(monthly_data.get("valor_final"))
             total_deps = _as_float(monthly_data.get("total_custo_dependentes"))
             if valor_final is not None or total_deps is not None:
-                monthly_data["custo_por_cliente"] = (valor_final or 0) + (total_deps or 0)
+                monthly_data["custo_por_cliente"] = round((valor_final or 0) + (total_deps or 0), 2)
 
             nr_vidas = _as_float(monthly_data.get("nr_vidas"))
             valor_vida_wiipo = _as_float(monthly_data.get("valor_elegivel_wiipo"))
@@ -411,7 +411,9 @@ def process_import(
                 and pro_rata is not None
                 and monthly_data.get("faturamento_wiipo") is None
             ):
-                monthly_data["faturamento_wiipo"] = (nr_vidas * valor_vida_wiipo / DIAS_MES) * pro_rata
+                monthly_data["faturamento_wiipo"] = round(
+                    (nr_vidas * valor_vida_wiipo / DIAS_MES) * pro_rata, 2
+                )
 
             if monthly_data.get("faturamento_wiipo") is not None:
                 monthly_data["faturamento"] = monthly_data["faturamento_wiipo"]

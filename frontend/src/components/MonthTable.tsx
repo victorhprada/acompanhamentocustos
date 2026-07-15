@@ -193,7 +193,7 @@ export default function MonthTable({
       return '';
     }
     const product = parseFloat(qtd) * parseFloat(valor);
-    return Number.isFinite(product) ? String(product) : '';
+    return Number.isFinite(product) ? product.toFixed(2) : '';
   };
 
   const calcFaturamentoWiipo = (form: Record<string, any>) => {
@@ -208,7 +208,7 @@ export default function MonthTable({
       return '';
     }
     const result = (parseFloat(nrVidas) * parseFloat(valorVida) / DIAS_MES) * parseFloat(proRata);
-    return Number.isFinite(result) ? String(result) : '';
+    return Number.isFinite(result) ? result.toFixed(2) : '';
   };
 
   const calcValorFinal = (form: Record<string, any>) => {
@@ -223,7 +223,7 @@ export default function MonthTable({
       return '';
     }
     const result = (parseFloat(custo) * parseFloat(vidas) / DIAS_MES) * parseFloat(proRata);
-    return Number.isFinite(result) ? String(result) : '';
+    return Number.isFinite(result) ? result.toFixed(2) : '';
   };
 
   const calcTotalCustoDependentes = (form: Record<string, any>) => {
@@ -251,7 +251,7 @@ export default function MonthTable({
       return '';
     }
     const sum = (parseFloat(valorFinal) || 0) + (parseFloat(totalDeps) || 0);
-    return Number.isFinite(sum) ? String(sum) : '';
+    return Number.isFinite(sum) ? sum.toFixed(2) : '';
   };
 
   const WELLHUB_INPUT_KEYS = new Set([
