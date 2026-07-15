@@ -14,6 +14,7 @@ const COLUMN_GROUPS = [
       { key: 'email_envio', label: 'E-mail para Envio' },
       { key: 'inicio_cobranca', label: 'Início Cobrança' },
       { key: 'vencimento', label: 'Dia de Vencimento' },
+      { key: 'parceiros', label: 'Parceiros' },
     ],
   },
   {

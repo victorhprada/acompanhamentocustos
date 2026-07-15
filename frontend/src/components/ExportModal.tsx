@@ -7,6 +7,7 @@ const COLUMN_GROUPS = [
     group: 'Básico',
     columns: [
       { key: 'empresa', label: 'Empresa' },
+      { key: 'parceiros', label: 'Parceiros' },
       { key: 'mes_ano', label: 'Mês/Ano' },
     ],
   },

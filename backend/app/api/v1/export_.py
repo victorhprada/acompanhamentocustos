@@ -37,6 +37,20 @@ def format_mes_ano(val: str | None) -> str:
     return val or ""
 
 
+PARCEIRO_LABELS = {
+    "totalpass": "Totalpass",
+    "wellhub": "Wellhub",
+}
+
+
+def format_parceiros(value) -> str:
+    if not value:
+        return ""
+    if isinstance(value, list):
+        return ", ".join(PARCEIRO_LABELS.get(str(v), str(v)) for v in value)
+    return str(value)
+
+
 def build_xlsx(title: str, active_columns: list[tuple[str, str]], rows: list[list]) -> bytes:
     wb = Workbook()
     ws = wb.active
@@ -148,6 +162,7 @@ def xlsx_response(content: bytes, filename: str) -> Response:
 
 MONTHLY_COLUMNS: list[tuple[str, str]] = [
     ("empresa", "Empresa"),
+    ("parceiros", "Parceiros"),
     ("mes_ano", "Mês/Ano"),
     ("elegiveis_contrato", "Elegíveis Contrato"),
     ("elegiveis", "Elegíveis"),
@@ -186,6 +201,7 @@ COMPANY_COLUMNS: list[tuple[str, str]] = [
     ("email_envio", "E-mail para Envio"),
     ("inicio_cobranca", "Início Cobrança"),
     ("vencimento", "Dia de Vencimento"),
+    ("parceiros", "Parceiros"),
 ]
 
 COMPANY_FIELD_KEYS = {k for k, _ in COMPANY_COLUMNS}
@@ -238,18 +254,27 @@ def export_monthly_xlsx(
             else supabase.table("monthly_records").select("*")
         ).execute().data or []
 
-        company_map: dict[str, str] = {}
-        if any(k == "empresa" for k, _ in active_columns) and records:
+        company_map: dict[str, dict] = {}
+        needs_company = any(k in ("empresa", "parceiros") for k, _ in active_columns)
+        if needs_company and records:
             ids = list({r["company_id"] for r in records})
-            res = supabase.table("companies").select("id, empresa").in_("id", ids).execute()
-            company_map = {c["id"]: c["empresa"] for c in res.data or []}
+            res = (
+                supabase.table("companies")
+                .select("id, empresa, parceiros")
+                .in_("id", ids)
+                .execute()
+            )
+            company_map = {c["id"]: c for c in res.data or []}
 
         rows = []
         for rec in records:
+            company = company_map.get(rec.get("company_id", ""), {})
             row = []
             for field, _ in active_columns:
                 if field == "empresa":
-                    row.append(company_map.get(rec.get("company_id", ""), ""))
+                    row.append(company.get("empresa", ""))
+                elif field == "parceiros":
+                    row.append(format_parceiros(company.get("parceiros")))
                 elif field == "mes_ano":
                     row.append(format_mes_ano(rec.get(field)))
                 else:
@@ -290,7 +315,7 @@ def export_rentabilidade_xlsx(
         # where media_cartao_realizado < media_contratada
         subsidio_result = (
             supabase.table("companies")
-            .select("id, company_id, empresa, cnpj, razao_social, data_assinatura_contrato, email_envio, inicio_cobranca, vencimento, subsidio")
+            .select("id, company_id, empresa, cnpj, razao_social, data_assinatura_contrato, email_envio, inicio_cobranca, vencimento, subsidio, parceiros")
             .eq("subsidio", True)
             .execute()
         )
@@ -319,7 +344,7 @@ def export_rentabilidade_xlsx(
         if all_company_ids:
             companies_res = (
                 supabase.table("companies")
-                .select("id, company_id, empresa, cnpj, razao_social, data_assinatura_contrato, email_envio, inicio_cobranca, vencimento, subsidio")
+                .select("id, company_id, empresa, cnpj, razao_social, data_assinatura_contrato, email_envio, inicio_cobranca, vencimento, subsidio, parceiros")
                 .in_("id", list(all_company_ids))
                 .execute()
             )
@@ -333,7 +358,9 @@ def export_rentabilidade_xlsx(
                 for field, _ in active_columns:
                     if field in COMPANY_FIELD_KEYS:
                         value = company.get(field)
-                        if field in ("data_assinatura_contrato", "inicio_cobranca") and value:
+                        if field == "parceiros":
+                            value = format_parceiros(value)
+                        elif field in ("data_assinatura_contrato", "inicio_cobranca") and value:
                             value = str(value)[:10].replace("-", "/")
                             parts = value.split("/")
                             if len(parts) == 3:
