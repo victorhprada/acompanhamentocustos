@@ -386,7 +386,7 @@ def build_comparacao_mes_a_mes_xlsx(year: int, months: list[int], by_month: dict
         ("Empresas filiais", "empresas_filiais"),
         ("Total de empresas", "total_empresas"),
         ("total de vidas cobradas", "total_vidas_cobradas"),
-        ("total pro rata", "total_valor_vidas"),
+        ("Total Custo por Vida", "total_valor_vidas"),
         ("total custo por cliente", "total_custo_por_cliente"),
         ("total de faturamento", "total_faturamento"),
     ]

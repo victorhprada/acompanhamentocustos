@@ -458,7 +458,7 @@ function Dashboard() {
               icon="👥"
             />
             <KPICard
-              title="Total PRO RATA"
+              title="Total Custo por Vida"
               value={formatNumber(kpis.kpis?.total_valor_vidas)}
               icon="📅"
             />
