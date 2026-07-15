@@ -109,9 +109,20 @@ function formatMonthFull(dateStr: string) {
   return `${names[parseInt(month) - 1]} ${year}`;
 }
 
-function formatValue(value: number | string | undefined, type: string) {
+const PRECISE_MONEY_KEYS = new Set(['valor_elegivel', 'valor_elegivel_wiipo']);
+
+function formatValue(value: number | string | undefined, type: string, key?: string) {
   if (value === undefined || value === null) return '-';
-  if (type === 'money') return `R$ ${Number(value).toFixed(2)}`;
+  if (type === 'money') {
+    // Custo por Vida / Valor vida Wiipo: manter casas usadas no cálculo (até 6)
+    if (key && PRECISE_MONEY_KEYS.has(key)) {
+      return `R$ ${Number(value).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 6,
+      })}`;
+    }
+    return `R$ ${Number(value).toFixed(2)}`;
+  }
   if (type === 'text') return String(value);
   return String(value);
 }
@@ -470,7 +481,7 @@ export default function MonthTable({
                 <tr className={record ? 'hover:bg-gray-50' : 'text-gray-400'}>
                   {visibleColumns.map(col => (
                     <td key={col.key} className="px-3 py-2 text-right border-r font-mono text-xs">
-                      {record ? formatValue(record[col.key as keyof MonthlyRecord] as number, col.type) : '-'}
+                      {record ? formatValue(record[col.key as keyof MonthlyRecord] as number, col.type, col.key) : '-'}
                     </td>
                   ))}
                   <td className="px-3 py-2 text-center">
@@ -529,7 +540,7 @@ export default function MonthTable({
                     <div key={col.key} className="bg-gray-50 rounded p-3">
                       <label className="block text-xs text-gray-400 mb-1">{col.label}</label>
                       <div className="text-sm font-mono font-medium">
-                        {val != null && val !== '' ? formatValue(val as number, col.type) : <span className="text-gray-400">-</span>}
+                        {val != null && val !== '' ? formatValue(val as number, col.type, col.key) : <span className="text-gray-400">-</span>}
                       </div>
                     </div>
                   );
