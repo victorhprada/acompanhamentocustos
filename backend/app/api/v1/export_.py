@@ -173,6 +173,7 @@ MONTHLY_COLUMNS: list[tuple[str, str]] = [
     ("custo_por_cliente", "Custo por Cliente"),
     ("faturamento", "Faturamento"),
     ("faturamento_dependentes", "Faturamento de Dependentes"),
+    ("observacao", "Observação"),
 ]
 
 # Company fields available in the rentabilidade export
@@ -215,6 +216,7 @@ RENTABILIDADE_COLUMNS: list[tuple[str, str]] = COMPANY_COLUMNS + [
     ("custo_por_cliente", "Custo por Cliente"),
     ("faturamento", "Faturamento"),
     ("faturamento_dependentes", "Faturamento de Dependentes"),
+    ("observacao", "Observação"),
 ]
 
 

@@ -59,6 +59,12 @@ const COLUMN_GROUPS = [
       { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes' },
     ],
   },
+  {
+    group: 'Observações',
+    columns: [
+      { key: 'observacao', label: 'Observação' },
+    ],
+  },
 ];
 
 const ALL_KEYS = COLUMN_GROUPS.flatMap(g => g.columns.map(c => c.key));
