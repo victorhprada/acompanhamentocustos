@@ -408,9 +408,10 @@ def process_import(
             if (
                 nr_vidas is not None
                 and valor_vida_wiipo is not None
+                and pro_rata is not None
                 and monthly_data.get("faturamento_wiipo") is None
             ):
-                monthly_data["faturamento_wiipo"] = nr_vidas * valor_vida_wiipo
+                monthly_data["faturamento_wiipo"] = (nr_vidas * valor_vida_wiipo / DIAS_MES) * pro_rata
 
             if monthly_data.get("faturamento_wiipo") is not None:
                 monthly_data["faturamento"] = monthly_data["faturamento_wiipo"]

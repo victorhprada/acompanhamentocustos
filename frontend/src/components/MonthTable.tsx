@@ -199,14 +199,16 @@ export default function MonthTable({
   const calcFaturamentoWiipo = (form: Record<string, any>) => {
     const nrVidas = form.nr_vidas;
     const valorVida = form.valor_elegivel_wiipo;
+    const proRata = form.valor_vidas;
     if (
       nrVidas === undefined || nrVidas === null || nrVidas === '' ||
-      valorVida === undefined || valorVida === null || valorVida === ''
+      valorVida === undefined || valorVida === null || valorVida === '' ||
+      proRata === undefined || proRata === null || proRata === ''
     ) {
       return '';
     }
-    const product = parseFloat(nrVidas) * parseFloat(valorVida);
-    return Number.isFinite(product) ? String(product) : '';
+    const result = (parseFloat(nrVidas) * parseFloat(valorVida) / DIAS_MES) * parseFloat(proRata);
+    return Number.isFinite(result) ? String(result) : '';
   };
 
   const calcValorFinal = (form: Record<string, any>) => {
@@ -267,7 +269,7 @@ export default function MonthTable({
       if (key === 'qtd_dependentes' || key === 'valor_por_dependente') {
         next.faturamento_dependentes = calcFaturamentoDependentes(next);
       }
-      if (key === 'nr_vidas' || key === 'valor_elegivel_wiipo') {
+      if (key === 'nr_vidas' || key === 'valor_elegivel_wiipo' || key === 'valor_vidas') {
         next.faturamento_wiipo = calcFaturamentoWiipo(next);
         next.faturamento = next.faturamento_wiipo;
       }
@@ -430,7 +432,7 @@ export default function MonthTable({
                               : col.key === 'total_custo_dependentes'
                               ? 'Calculado: (Custo por Dependente × Qtd de Dependentes / 30) × PRO RATA Dependente'
                               : col.key === 'faturamento_wiipo'
-                              ? 'Calculado: Nº Vidas × Valor vida Wiipo'
+                              ? 'Calculado: (Nº Vidas × Valor vida Wiipo / 30) × PRO RATA'
                               : 'Calculado automaticamente: Qtd Dependentes × Valor por dependente'
                           }
                         />

@@ -65,8 +65,8 @@ def apply_computed_fields(data: dict) -> dict:
 
     nr_vidas = _as_float(data.get("nr_vidas"))
     valor_vida_wiipo = _as_float(data.get("valor_elegivel_wiipo"))
-    if nr_vidas is not None and valor_vida_wiipo is not None:
-        data["faturamento_wiipo"] = nr_vidas * valor_vida_wiipo
+    if nr_vidas is not None and valor_vida_wiipo is not None and pro_rata is not None:
+        data["faturamento_wiipo"] = (nr_vidas * valor_vida_wiipo / DIAS_MES) * pro_rata
 
     if data.get("faturamento_wiipo") is not None:
         data["faturamento"] = data["faturamento_wiipo"]
