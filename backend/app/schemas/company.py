@@ -1,8 +1,10 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 from datetime import date, datetime
 
 TipoEmpresa = Literal["matriz", "filial"]
+Parceiro = Literal["totalpass", "wellhub"]
+ALLOWED_PARCEIROS = frozenset({"totalpass", "wellhub"})
 
 
 class CompanyBase(BaseModel):
@@ -17,6 +19,23 @@ class CompanyBase(BaseModel):
     nota_fiscal_descricao: Optional[str] = None
     subsidio: Optional[bool] = None
     tipo_empresa: TipoEmpresa
+    parceiros: Optional[List[Parceiro]] = Field(default_factory=list)
+
+    @field_validator("parceiros")
+    @classmethod
+    def validate_parceiros_base(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return []
+        invalid = [p for p in v if p not in ALLOWED_PARCEIROS]
+        if invalid:
+            raise ValueError("parceiros deve conter apenas 'totalpass' e/ou 'wellhub'")
+        seen: set[str] = set()
+        result: list[str] = []
+        for p in v:
+            if p not in seen:
+                seen.add(p)
+                result.append(p)
+        return result
 
 
 class CompanyCreate(CompanyBase):
@@ -34,6 +53,7 @@ class CompanyUpdate(BaseModel):
     nota_fiscal_descricao: Optional[str] = None
     subsidio: Optional[bool] = None
     tipo_empresa: Optional[TipoEmpresa] = None
+    parceiros: Optional[List[Parceiro]] = None
     is_active: Optional[bool] = None
 
     @field_validator("tipo_empresa")
@@ -42,6 +62,23 @@ class CompanyUpdate(BaseModel):
         if v is not None and v not in ("matriz", "filial"):
             raise ValueError("tipo_empresa deve ser 'matriz' ou 'filial'")
         return v
+
+    @field_validator("parceiros")
+    @classmethod
+    def validate_parceiros(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        if v is None:
+            return v
+        invalid = [p for p in v if p not in ALLOWED_PARCEIROS]
+        if invalid:
+            raise ValueError("parceiros deve conter apenas 'totalpass' e/ou 'wellhub'")
+        # unique, preserve order
+        seen: set[str] = set()
+        result: list[str] = []
+        for p in v:
+            if p not in seen:
+                seen.add(p)
+                result.append(p)
+        return result
 
 
 

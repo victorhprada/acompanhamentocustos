@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getCompanies, createCompany, updateCompany, deactivateCompany, activateCompany } from '../../services/api';
 import ImportModal from '../../components/ImportModal';
+import { ParceirosSelect } from '../../components/ParceirosSelect';
 
 const ERROR_MESSAGES: Record<string, string> = {
   'cnpj': 'CNPJ',
@@ -126,6 +127,7 @@ export default function CompaniesList() {
     nota_fiscal_descricao: '',
     subsidio: false,
     tipo_empresa: '' as '' | 'matriz' | 'filial',
+    parceiros: [] as string[],
   });
 
   const createMutation = useMutation({
@@ -158,7 +160,7 @@ export default function CompaniesList() {
     setShowForm(false);
     setEditingId(null);
     setErrors({});
-    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', data_assinatura_contrato: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '', subsidio: false, tipo_empresa: '' });
+    setFormData({ company_id: '', empresa: '', cnpj: '', razao_social: '', data_assinatura_contrato: '', email_envio: '', inicio_cobranca: '', vencimento: '', nota_fiscal_descricao: '', subsidio: false, tipo_empresa: '', parceiros: [] });
   };
 
   const startEdit = (company: any) => {
@@ -177,6 +179,7 @@ export default function CompaniesList() {
       nota_fiscal_descricao: company.nota_fiscal_descricao || '',
       subsidio: company.subsidio ?? false,
       tipo_empresa: company.tipo_empresa === 'filial' ? 'filial' : 'matriz',
+      parceiros: Array.isArray(company.parceiros) ? [...company.parceiros] : [],
     });
   };
 
@@ -245,6 +248,7 @@ export default function CompaniesList() {
     if (formData.nota_fiscal_descricao) data.nota_fiscal_descricao = formData.nota_fiscal_descricao;
     data.subsidio = formData.subsidio;
     data.tipo_empresa = formData.tipo_empresa;
+    data.parceiros = formData.parceiros;
 
     if (editingId) {
       updateMutation.mutate({ id: editingId, data });
@@ -311,6 +315,10 @@ export default function CompaniesList() {
             <MultiEmailInput value={formData.email_envio} onChange={(v) => setFormData({ ...formData, email_envio: v })} error={errors.email_envio} />
             <Input label="Início Cobrança" type="date" value={formData.inicio_cobranca} onChange={(v) => setFormData({ ...formData, inicio_cobranca: v })} error={errors.inicio_cobranca} />
             <Input label="Dia Vencimento" type="number" value={formData.vencimento} onChange={(v) => setFormData({ ...formData, vencimento: v })} placeholder="1-31" error={errors.vencimento} />
+            <ParceirosSelect
+              value={formData.parceiros}
+              onChange={(parceiros) => setFormData({ ...formData, parceiros })}
+            />
           </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Descrição na Nota Fiscal</label>

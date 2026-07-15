@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { getCompany, getMonthlyRecords, updateCompany, deactivateCompany, activateCompany } from '../../services/api';
 import MonthTable from '../../components/MonthTable';
+import { ParceirosBadges, ParceirosSelect } from '../../components/ParceirosSelect';
 
 export default function CompanyDetail() {
   const { id } = useParams<{ id: string }>();
@@ -102,6 +103,7 @@ export default function CompanyDetail() {
       nota_fiscal_descricao: company.nota_fiscal_descricao,
       subsidio: company.subsidio ?? false,
       tipo_empresa: company.tipo_empresa === 'filial' ? 'filial' : 'matriz',
+      parceiros: Array.isArray(company.parceiros) ? [...company.parceiros] : [],
     });
   };
 
@@ -121,6 +123,7 @@ export default function CompanyDetail() {
     if (editForm.nota_fiscal_descricao) data.nota_fiscal_descricao = editForm.nota_fiscal_descricao;
     data.subsidio = editForm.subsidio ?? false;
     data.tipo_empresa = editForm.tipo_empresa;
+    data.parceiros = Array.isArray(editForm.parceiros) ? editForm.parceiros : [];
     updateMutation.mutate(data);
   };
 
@@ -144,6 +147,10 @@ export default function CompanyDetail() {
                   <InputEditMultiEmail label="E-mails" value={editForm.email_envio || ''} onChange={(v) => setEditForm({...editForm, email_envio: v})} error={errors.email_envio} />
                   <InputEdit label="Início Cobrança" type="date" value={editForm.inicio_cobranca || ''} onChange={(v) => setEditForm({...editForm, inicio_cobranca: v})} />
                   <InputEdit label="Dia Vencimento" type="number" value={editForm.vencimento || ''} onChange={(v) => setEditForm({...editForm, vencimento: v})} />
+                  <ParceirosSelect
+                    value={Array.isArray(editForm.parceiros) ? editForm.parceiros : []}
+                    onChange={(parceiros) => setEditForm({ ...editForm, parceiros })}
+                  />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-600 mb-1">Descrição NF</label>
@@ -219,6 +226,10 @@ export default function CompanyDetail() {
                   <Field label="E-mails para envio" value={company.email_envio} multiEmail />
                   <Field label="Início Cobrança" value={company.inicio_cobranca ? company.inicio_cobranca.slice(0, 10).split('-').reverse().join('/') : null} />
                   <Field label="Dia de Vencimento" value={company.vencimento ? `Dia ${company.vencimento}` : null} />
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase mb-0.5">Parceiros</label>
+                    <ParceirosBadges value={company.parceiros} />
+                  </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 uppercase mb-0.5">Tipo</label>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${

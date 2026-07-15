@@ -11,6 +11,7 @@ export interface Company {
   nota_fiscal_descricao?: string;
   subsidio?: boolean;
   tipo_empresa: 'matriz' | 'filial';
+  parceiros?: ('totalpass' | 'wellhub')[];
   is_active: boolean;
   created_at: string;
   updated_at: string;
