@@ -43,7 +43,7 @@ const DETAIL_GROUPS: Record<string, ColumnDef[]> = {
   'Wiipo': [
     { key: 'nr_vidas', label: 'Nº Vidas', type: 'number' },
     { key: 'valor_elegivel_wiipo', label: 'Valor Elegível Wiipo', type: 'money' },
-    { key: 'faturamento_wiipo', label: 'Faturamento Wiipo', type: 'money' },
+    { key: 'faturamento_wiipo', label: 'Faturamento Wiipo', type: 'money', computed: true },
     { key: 'qtd_dependentes', label: 'Qtd Dependentes', type: 'number' },
     { key: 'valor_por_dependente', label: 'Valor por dependente', type: 'money' },
   ],
@@ -81,7 +81,7 @@ const EDITABLE_COLUMNS: ColumnDef[] = [
   // Fat Wiipo
   { key: 'nr_vidas', label: 'Nº Vidas', type: 'number' },
   { key: 'valor_elegivel_wiipo', label: 'Valor vida Wiipo', type: 'money' },
-  { key: 'faturamento_wiipo', label: 'Faturamento Wiipo', type: 'money' },
+  { key: 'faturamento_wiipo', label: 'Faturamento Wiipo', type: 'money', computed: true },
   { key: 'qtd_dependentes', label: 'Qtd Dependentes', type: 'number' },
   { key: 'valor_por_dependente', label: 'Valor por dependente', type: 'money' },
   { key: 'faturamento_dependentes', label: 'Faturamento de Dependentes', type: 'money', computed: true },
@@ -196,6 +196,19 @@ export default function MonthTable({
     return Number.isFinite(product) ? String(product) : '';
   };
 
+  const calcFaturamentoWiipo = (form: Record<string, any>) => {
+    const nrVidas = form.nr_vidas;
+    const valorVida = form.valor_elegivel_wiipo;
+    if (
+      nrVidas === undefined || nrVidas === null || nrVidas === '' ||
+      valorVida === undefined || valorVida === null || valorVida === ''
+    ) {
+      return '';
+    }
+    const product = parseFloat(nrVidas) * parseFloat(valorVida);
+    return Number.isFinite(product) ? String(product) : '';
+  };
+
   const calcValorFinal = (form: Record<string, any>) => {
     const custo = form.valor_elegivel;
     const vidas = form.vidas_cobradas;
@@ -254,13 +267,14 @@ export default function MonthTable({
       if (key === 'qtd_dependentes' || key === 'valor_por_dependente') {
         next.faturamento_dependentes = calcFaturamentoDependentes(next);
       }
+      if (key === 'nr_vidas' || key === 'valor_elegivel_wiipo') {
+        next.faturamento_wiipo = calcFaturamentoWiipo(next);
+        next.faturamento = next.faturamento_wiipo;
+      }
       if (WELLHUB_INPUT_KEYS.has(key)) {
         next.valor_final = calcValorFinal(next);
         next.total_custo_dependentes = calcTotalCustoDependentes(next);
         next.custo_por_cliente = calcCustoPorCliente(next);
-      }
-      if (key === 'faturamento_wiipo') {
-        next.faturamento = value;
       }
       return next;
     });
@@ -268,13 +282,15 @@ export default function MonthTable({
 
   const doSave = (propagate: boolean) => {
     const data: Record<string, any> = {};
+    const faturamentoWiipo = calcFaturamentoWiipo(editForm) || editForm.faturamento_wiipo;
     const formWithCalc: Record<string, any> = {
       ...editForm,
       faturamento_dependentes: calcFaturamentoDependentes(editForm) || editForm.faturamento_dependentes,
       valor_final: calcValorFinal(editForm) || editForm.valor_final,
       total_custo_dependentes: calcTotalCustoDependentes(editForm) || editForm.total_custo_dependentes,
       custo_por_cliente: calcCustoPorCliente(editForm) || editForm.custo_por_cliente,
-      faturamento: editForm.faturamento_wiipo ?? editForm.faturamento,
+      faturamento_wiipo: faturamentoWiipo,
+      faturamento: faturamentoWiipo ?? editForm.faturamento,
     };
     // Persist editable columns + computed detail-only fields + observacao
     const keysToSave = new Set([
@@ -401,6 +417,8 @@ export default function MonthTable({
                               ? (calcValorFinal(editForm) || editForm[col.key] || '')
                               : col.key === 'total_custo_dependentes'
                               ? (calcTotalCustoDependentes(editForm) || editForm[col.key] || '')
+                              : col.key === 'faturamento_wiipo'
+                              ? (calcFaturamentoWiipo(editForm) || editForm[col.key] || '')
                               : (calcFaturamentoDependentes(editForm) || editForm[col.key] || '')
                           }
                           readOnly
@@ -411,6 +429,8 @@ export default function MonthTable({
                               ? 'Calculado: (Custo por Vida × Vidas Cobradas / 30) × PRO RATA'
                               : col.key === 'total_custo_dependentes'
                               ? 'Calculado: (Custo por Dependente × Qtd de Dependentes / 30) × PRO RATA Dependente'
+                              : col.key === 'faturamento_wiipo'
+                              ? 'Calculado: Nº Vidas × Valor vida Wiipo'
                               : 'Calculado automaticamente: Qtd Dependentes × Valor por dependente'
                           }
                         />
@@ -488,6 +508,8 @@ export default function MonthTable({
                     if (col.key === 'total_custo_dependentes') val = calcTotalCustoDependentes(editForm) || editForm.total_custo_dependentes;
                     if (col.key === 'custo_por_cliente') val = calcCustoPorCliente(editForm) || editForm.custo_por_cliente;
                     if (col.key === 'faturamento_dependentes') val = calcFaturamentoDependentes(editForm) || editForm.faturamento_dependentes;
+                    if (col.key === 'faturamento_wiipo') val = calcFaturamentoWiipo(editForm) || editForm.faturamento_wiipo;
+                    if (col.key === 'faturamento') val = calcFaturamentoWiipo(editForm) || editForm.faturamento_wiipo || editForm.faturamento;
                   } else if (record) {
                     // Fallbacks for legacy rows before auto-copy / new formulas
                     if (col.key === 'custo_por_cliente' && (val == null || val === '')) {

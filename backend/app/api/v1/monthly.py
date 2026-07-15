@@ -63,6 +63,11 @@ def apply_computed_fields(data: dict) -> dict:
     if valor_final is not None or total_deps is not None:
         data["custo_por_cliente"] = (valor_final or 0) + (total_deps or 0)
 
+    nr_vidas = _as_float(data.get("nr_vidas"))
+    valor_vida_wiipo = _as_float(data.get("valor_elegivel_wiipo"))
+    if nr_vidas is not None and valor_vida_wiipo is not None:
+        data["faturamento_wiipo"] = nr_vidas * valor_vida_wiipo
+
     if data.get("faturamento_wiipo") is not None:
         data["faturamento"] = data["faturamento_wiipo"]
 
@@ -187,6 +192,7 @@ def update_monthly_record(
         "valor_final",
         "total_custo_dependentes",
         "custo_por_cliente",
+        "faturamento_wiipo",
         "faturamento",
         "faturamento_dependentes",
     ):
