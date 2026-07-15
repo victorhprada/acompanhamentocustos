@@ -15,6 +15,7 @@ class MonthlyRecordBase(BaseModel):
     # Gympass/Totalpass
     vidas_cobradas: Optional[float] = None
     valor_vidas: Optional[float] = None
+    pro_rata_dependente: Optional[float] = None
     qtd_dependentes_gympass: Optional[float] = None
     custo_por_dependente: Optional[float] = None
     total_custo_dependentes: Optional[float] = None
@@ -54,6 +55,7 @@ class MonthlyRecordUpdate(BaseModel):
     valor_final: Optional[float] = None
     vidas_cobradas: Optional[float] = None
     valor_vidas: Optional[float] = None
+    pro_rata_dependente: Optional[float] = None
     qtd_dependentes_gympass: Optional[float] = None
     custo_por_dependente: Optional[float] = None
     total_custo_dependentes: Optional[float] = None

@@ -24,7 +24,7 @@ COMPANY_FIELDS = {
 
 MONTHLY_FIELDS = {
     "elegiveis_contrato", "elegiveis", "valor_elegivel", "valor_final",
-    "vidas_cobradas", "valor_vidas",
+    "vidas_cobradas", "valor_vidas", "pro_rata_dependente",
     "qtd_dependentes_gympass", "custo_por_dependente", "total_custo_dependentes",
     "nr_cartao_contrato_flex", "nr_cartao_carga_flex", "rs_carregado",
     "media_cartao_realizado", "media_contratada", "nr_vidas", "valor_elegivel_wiipo",
@@ -387,13 +387,16 @@ def process_import(
 
             qtd_gp = _as_float(monthly_data.get("qtd_dependentes_gympass"))
             custo = _as_float(monthly_data.get("custo_por_dependente"))
+            pro_rata_dep = _as_float(monthly_data.get("pro_rata_dependente"))
             if (
                 qtd_gp is not None
                 and custo is not None
-                and pro_rata is not None
+                and pro_rata_dep is not None
                 and monthly_data.get("total_custo_dependentes") is None
             ):
-                monthly_data["total_custo_dependentes"] = (custo * qtd_gp / DIAS_MES) * pro_rata
+                monthly_data["total_custo_dependentes"] = round(
+                    (custo * qtd_gp / DIAS_MES) * pro_rata_dep, 2
+                )
 
             valor_final = _as_float(monthly_data.get("valor_final"))
             total_deps = _as_float(monthly_data.get("total_custo_dependentes"))

@@ -54,8 +54,9 @@ def apply_computed_fields(data: dict) -> dict:
 
     qtd_gp = _as_float(data.get("qtd_dependentes_gympass"))
     custo = _as_float(data.get("custo_por_dependente"))
-    if qtd_gp is not None and custo is not None and pro_rata is not None:
-        data["total_custo_dependentes"] = (custo * qtd_gp / DIAS_MES) * pro_rata
+    pro_rata_dep = _as_float(data.get("pro_rata_dependente"))
+    if qtd_gp is not None and custo is not None and pro_rata_dep is not None:
+        data["total_custo_dependentes"] = round((custo * qtd_gp / DIAS_MES) * pro_rata_dep, 2)
 
     valor_final = _as_float(data.get("valor_final"))
     total_deps = _as_float(data.get("total_custo_dependentes"))

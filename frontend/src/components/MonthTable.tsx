@@ -28,6 +28,7 @@ const DETAIL_GROUPS: Record<string, ColumnDef[]> = {
   'Gympass/Totalpass': [
     { key: 'vidas_cobradas', label: 'Vidas Cobradas', type: 'number' },
     { key: 'valor_vidas', label: 'PRO RATA', type: 'number' },
+    { key: 'pro_rata_dependente', label: 'PRO RATA Dependente', type: 'number' },
     { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes', type: 'number' },
     { key: 'custo_por_dependente', label: 'Custo por Dependente', type: 'money' },
     { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente', type: 'money', computed: true },
@@ -67,6 +68,7 @@ const EDITABLE_COLUMNS: ColumnDef[] = [
   { key: 'valor_vidas', label: 'PRO RATA', type: 'number' },
   { key: 'valor_elegivel', label: 'Custo por Vida', type: 'money' },
   { key: 'valor_final', label: 'Valor Final (custo)', type: 'money', computed: true },
+  { key: 'pro_rata_dependente', label: 'PRO RATA Dependente', type: 'number' },
   { key: 'qtd_dependentes_gympass', label: 'Qtd de Dependentes', type: 'number' },
   { key: 'custo_por_dependente', label: 'Custo por Dependente', type: 'money' },
   { key: 'total_custo_dependentes', label: 'Total de Custo por Dependente', type: 'money', computed: true },
@@ -212,7 +214,7 @@ export default function MonthTable({
   const calcTotalCustoDependentes = (form: Record<string, any>) => {
     const qtd = form.qtd_dependentes_gympass;
     const custo = form.custo_por_dependente;
-    const proRata = form.valor_vidas;
+    const proRata = form.pro_rata_dependente;
     if (
       qtd === undefined || qtd === null || qtd === '' ||
       custo === undefined || custo === null || custo === '' ||
@@ -221,7 +223,7 @@ export default function MonthTable({
       return '';
     }
     const result = (parseFloat(custo) * parseFloat(qtd) / DIAS_MES) * parseFloat(proRata);
-    return Number.isFinite(result) ? String(result) : '';
+    return Number.isFinite(result) ? result.toFixed(2) : '';
   };
 
   const calcCustoPorCliente = (form: Record<string, any>) => {
@@ -241,6 +243,7 @@ export default function MonthTable({
     'valor_elegivel',
     'vidas_cobradas',
     'valor_vidas',
+    'pro_rata_dependente',
     'qtd_dependentes_gympass',
     'custo_por_dependente',
   ]);
@@ -407,14 +410,14 @@ export default function MonthTable({
                             col.key === 'valor_final'
                               ? 'Calculado: (Custo por Vida × Vidas Cobradas / 30) × PRO RATA'
                               : col.key === 'total_custo_dependentes'
-                              ? 'Calculado: (Custo por Dependente × Qtd de Dependentes / 30) × PRO RATA'
+                              ? 'Calculado: (Custo por Dependente × Qtd de Dependentes / 30) × PRO RATA Dependente'
                               : 'Calculado automaticamente: Qtd Dependentes × Valor por dependente'
                           }
                         />
                       ) : (
                         <input
                           type={col.type === 'text' ? 'text' : 'number'}
-                          step={col.key === 'valor_vidas' ? '1' : 'any'}
+                          step={col.key === 'valor_vidas' || col.key === 'pro_rata_dependente' ? '1' : 'any'}
                           value={editForm[col.key] ?? ''}
                           onChange={e => updateEditField(col.key, e.target.value)}
                           className="w-full border rounded px-2 py-1 text-right focus:ring-2 focus:ring-blue-500 focus:outline-none text-xs"
