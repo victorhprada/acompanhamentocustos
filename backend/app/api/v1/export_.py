@@ -298,12 +298,11 @@ def export_rentabilidade_xlsx(
     try:
         active_columns = resolve_columns(columns, RENTABILIDADE_COLUMNS)
 
-        # Section 1: records where mensal_x_rentabilidade = 'Faturamento mensal'
+        # Section 1: all monthly records for the selected month
         sec1_result = (
             supabase.table("monthly_records")
             .select("*")
             .eq("mes_ano", mes_ano)
-            .eq("mensal_x_rentabilidade", "Faturamento mensal")
             .execute()
         )
         sec1_records = sec1_result.data or []

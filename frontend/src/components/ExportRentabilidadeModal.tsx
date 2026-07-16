@@ -144,8 +144,7 @@ export default function ExportRentabilidadeModal({
           <div>
             <h2 className="text-lg font-semibold text-gray-900">Exportar Faturamento Mensal</h2>
             <p className="text-sm text-gray-500">
-              Empresas com <strong>Mensal x Rentabilidade = Faturamento mensal</strong> em{' '}
-              <strong>{monthLabel(mesAno)}</strong>
+              Todas as empresas com registro mensal em <strong>{monthLabel(mesAno)}</strong>
             </p>
           </div>
           <button onClick={onClose} disabled={exporting} className="text-gray-400 hover:text-gray-600 text-2xl leading-none disabled:opacity-30">×</button>
