@@ -420,7 +420,7 @@ def build_comparacao_mes_a_mes_xlsx(year: int, months: list[int], by_month: dict
         ("total de faturamento", "total_faturamento"),
     ]
 
-    money_keys = {"total_custo_por_cliente", "total_faturamento"}
+    money_keys = {"total_valor_vidas", "total_custo_por_cliente", "total_faturamento"}
 
     for row_idx, (label, key) in enumerate(metric_rows, start=2):
         label_cell = ws.cell(row=row_idx, column=1, value=label)

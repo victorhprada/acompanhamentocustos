@@ -43,7 +43,7 @@ def accumulate_kpi_record(bucket: dict, rec: dict) -> None:
     if cid:
         bucket["_company_ids"].add(cid)
     bucket["total_vidas_cobradas"] += rec.get("vidas_cobradas") or 0
-    bucket["total_valor_vidas"] += rec.get("valor_vidas") or 0
+    bucket["total_valor_vidas"] += rec.get("valor_elegivel") or 0
     # custo_por_cliente already includes valor_final + total_custo_dependentes
     bucket["total_custo_por_cliente"] += rec.get("custo_por_cliente") or 0
     bucket["total_faturamento"] += (
@@ -73,7 +73,7 @@ def finalize_kpi_bucket(bucket: dict, company_tipos: dict[str, str]) -> dict:
 RECORD_SELECT = (
     "company_id,"
     "vidas_cobradas,"
-    "valor_vidas,"
+    "valor_elegivel,"
     "custo_por_cliente,"
     "total_custo_dependentes,"
     "faturamento,"

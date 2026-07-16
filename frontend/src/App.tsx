@@ -459,8 +459,8 @@ function Dashboard() {
             />
             <KPICard
               title="Total Custo por Vida"
-              value={formatNumber(kpis.kpis?.total_valor_vidas)}
-              icon="📅"
+              value={formatMoney(kpis.kpis?.total_valor_vidas)}
+              icon="💰"
             />
             <KPICard
               title="Total Custo por Cliente"
