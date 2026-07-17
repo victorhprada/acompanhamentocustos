@@ -6,6 +6,7 @@ from app.config import settings
 from app.deps import verify_token
 from typing import Optional
 from openpyxl import Workbook
+from openpyxl.cell.cell import MergedCell
 from openpyxl.styles import Font, PatternFill, Alignment
 
 logger = logging.getLogger(__name__)
@@ -79,6 +80,78 @@ def build_xlsx(title: str, active_columns: list[tuple[str, str]], rows: list[lis
     wb.save(output)
     output.seek(0)
     return output.getvalue()
+
+
+def build_sectioned_xlsx(
+    title: str,
+    active_columns: list[tuple[str, str]],
+    sections: list[tuple[str, str, str, list[list]]],
+) -> bytes:
+    """Build an XLSX with labelled sections. Each section is (label, header_fill, col_fill, rows)."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = title
+
+    col_count = len(active_columns)
+    current_row = 1
+
+    def write_section_header(row_idx: int, label: str, fill_color: str):
+        cell = ws.cell(row=row_idx, column=1, value=label)
+        cell.font = Font(bold=True, color="FFFFFF", size=11)
+        cell.fill = PatternFill("solid", fgColor=fill_color)
+        cell.alignment = Alignment(horizontal="left", vertical="center")
+        if col_count > 1:
+            ws.merge_cells(start_row=row_idx, start_column=1, end_row=row_idx, end_column=col_count)
+
+    def write_col_headers(row_idx: int, fill_color: str):
+        font = Font(bold=True, color="FFFFFF")
+        fill = PatternFill("solid", fgColor=fill_color)
+        align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        for col_idx, (_, label) in enumerate(active_columns, start=1):
+            cell = ws.cell(row=row_idx, column=col_idx, value=label)
+            cell.font = font
+            cell.fill = fill
+            cell.alignment = align
+
+    for section_idx, (label, header_fill, col_fill, rows) in enumerate(sections):
+        if section_idx > 0:
+            ws.row_dimensions[current_row].height = 10
+            current_row += 1
+
+        write_section_header(current_row, label, header_fill)
+        current_row += 1
+        write_col_headers(current_row, col_fill)
+        current_row += 1
+        for row in rows:
+            for col_idx, value in enumerate(row, start=1):
+                ws.cell(row=current_row, column=col_idx, value=value)
+            current_row += 1
+
+    for col_idx in range(1, col_count + 1):
+        col_letter = ws.cell(row=2, column=col_idx).column_letter
+        max_len = 0
+        for cell in ws.iter_cols(min_col=col_idx, max_col=col_idx):
+            for c in cell:
+                if isinstance(c, MergedCell):
+                    continue
+                if c.value is not None:
+                    max_len = max(max_len, len(str(c.value)))
+        ws.column_dimensions[col_letter].width = min(max_len + 4, 40)
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output.getvalue()
+
+
+def classify_mensal_x_rentabilidade(value: str | None) -> str:
+    """Return 'faturamento', 'rentabilidade', or 'outro' (mutually exclusive)."""
+    text = (value or "").strip().lower()
+    if "faturamento" in text:
+        return "faturamento"
+    if "rentabilidade" in text:
+        return "rentabilidade"
+    return "outro"
 
 
 def xlsx_response(content: bytes, filename: str) -> Response:
@@ -248,8 +321,7 @@ def export_rentabilidade_xlsx(
             )
             company_map = {c["id"]: c for c in companies_res.data or []}
 
-        rows = []
-        for rec in records:
+        def build_row(rec: dict) -> list:
             company = company_map.get(rec.get("company_id", ""), {})
             row = []
             for field, _ in active_columns:
@@ -267,9 +339,27 @@ def export_rentabilidade_xlsx(
                 else:
                     value = rec.get(field)
                 row.append(value)
-            rows.append(row)
+            return row
 
-        content = build_xlsx("Faturamento Mensal", active_columns, rows)
+        faturamento_rows: list[list] = []
+        rentabilidade_rows: list[list] = []
+        outros_rows: list[list] = []
+        for rec in records:
+            bucket = classify_mensal_x_rentabilidade(rec.get("mensal_x_rentabilidade"))
+            row = build_row(rec)
+            if bucket == "faturamento":
+                faturamento_rows.append(row)
+            elif bucket == "rentabilidade":
+                rentabilidade_rows.append(row)
+            else:
+                outros_rows.append(row)
+
+        sections: list[tuple[str, str, str, list[list]]] = [
+            ("Faturamento Mensal", "2563EB", "3B82F6", faturamento_rows),
+            ("Rentabilidade", "D97706", "F59E0B", rentabilidade_rows),
+            ("Sem classificação", "6B7280", "9CA3AF", outros_rows),
+        ]
+        content = build_sectioned_xlsx("Faturamento Mensal", active_columns, sections)
         return xlsx_response(content, f"faturamento_mensal_{mes_ano}.xlsx")
     except HTTPException:
         raise
