@@ -13,7 +13,7 @@ Feature: Data Model
   Scenario: Company data has proper constraints
     Given a company is created
     Then the cnpj field is unique
-    And the company_id field is unique
+    And the company_id field is not unique
     And the is_active flag defaults to true
 
   Scenario: Monthly records have unique constraint

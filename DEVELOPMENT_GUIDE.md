@@ -48,7 +48,7 @@ Write Spec (Gherkin) → Spec Fails (RED) → Implement Code → Spec Passes (GR
 ```sql
 CREATE TABLE companies (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id VARCHAR(50) UNIQUE NOT NULL,        -- Identificador interno
+  company_id VARCHAR(50) NOT NULL,               -- Identificador interno / rótulo de grupo (pode se repetir)
   empresa VARCHAR(255) NOT NULL,                  -- Nome fantasia
   cnpj VARCHAR(18) NOT NULL,                      -- CNPJ
   razao_social VARCHAR(255),                      -- Razão Social

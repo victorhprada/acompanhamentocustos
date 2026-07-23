@@ -70,7 +70,7 @@ O sistema possui três níveis de permissão:
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `company_id` | String (50 chars) | ✅ | Identificador interno único |
+| `company_id` | String (50 chars) | ✅ | Identificador interno / rótulo de grupo (pode se repetir) |
 | `empresa` | String (255 chars) | ✅ | Nome fantasia da empresa |
 | `cnpj` | String (18 chars) | ✅ | CNPJ formatado (XX.XXX.XXX/XXXX-XX) |
 
@@ -88,7 +88,7 @@ O sistema possui três níveis de permissão:
 
 #### Regras
 
-1. **`company_id` deve ser único** — Não é possível criar duas empresas com o mesmo identificador.
+1. **`company_id` pode se repetir** — Serve como rótulo de grupo (ex.: várias filiais do mesmo grupo). Não precisa ser único.
 2. **`cnpj` deve ser único** — Não é possível criar duas empresas com o mesmo CNPJ.
 3. **Desativação vs Exclusão:**
    - Desativar (`deactivate`) marca a empresa como inativa, mas preserva todos os registros mensais associados.
@@ -217,7 +217,6 @@ Meses suportados em português: janeiro, fevereiro, março, abril, maio, junho, 
 | Erro | Causa | Solução |
 |---|---|---|
 | "CNPJ já cadastrado" | Empresa com mesmo CNPJ já existe | A empresa existente será atualizada automaticamente |
-| "Company ID já cadastrado" | `company_id` duplicado | O sistema tenta usar o CNPJ como identificador alternativo |
 | "Campo obrigatório vazio" | Coluna essencial não mapeada | Verifique o mapeamento de colunas CNPJ e Empresa |
 | "Linha ignorada: CNPJ ausente" | CNPJ não foi mapeado ou está vazio | Mapeie a coluna CNPJ na planilha |
 
@@ -468,10 +467,9 @@ A verificação de role é feita pela função `has_role()` no banco de dados, q
 
 | Regra | Validação |
 |---|---|
-| CNPJ único | Erro 400: "CNPJ already exists" |
-| Company ID único | Erro 400: "Company ID already exists" |
+| CNPJ único | Erro 400: "CNPJ já cadastrado" |
 | Registro duplicado (empresa + produto + mês) | Erro 400: "Já existe um registro para este mês" |
-| Empresa não encontrada | Erro 404: "Company not found" |
+| Empresa não encontrada | Erro 404: "Empresa não encontrada" |
 | Registro não encontrado | Erro 404: "Monthly record not found" |
 | Arquivo de import inválido | Erro 400: "Apenas arquivos Excel (.xlsx, .xls) são aceitos" |
 | CNPJ ausente na importação | Erro: "Linha ignorada: CNPJ ausente" |

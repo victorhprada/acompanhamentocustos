@@ -36,7 +36,7 @@ Feature: Companies Management
     Given a company exists with CNPJ "12.345.678/0001-90"
     When I try to create another company with CNPJ "12.345.678/0001-90"
     And I save the company
-    Then I see a validation error "CNPJ already exists"
+    Then I see a validation error "CNPJ já cadastrado"
     And the company is not created
 
   @analyst @admin @viewer

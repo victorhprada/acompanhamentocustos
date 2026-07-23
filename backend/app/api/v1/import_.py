@@ -76,7 +76,6 @@ def _friendly_error(exc: Exception, label: str) -> str:
         if m:
             field, value = m.group(1), m.group(2)
             hints = {
-                "company_id": f"Company ID '{value}' já cadastrado. O sistema usará o CNPJ como identificador alternativo.",
                 "cnpj": f"CNPJ '{value}' já cadastrado — empresa atualizada.",
             }
             return f"{label}: {hints.get(field, f'valor duplicado no campo {field}: {value}')}"
@@ -453,7 +452,7 @@ def process_import(
                     supabase.table("companies").update(company_data).eq("id", company_db_id).execute()
                     results["companies_updated"] += 1
                 else:
-                    # Ensure unique company_id; default to CNPJ digits
+                    # Default company_id to CNPJ digits when missing (may be shared across group)
                     if not company_data.get("company_id"):
                         company_data["company_id"] = re.sub(r"\D", "", cnpj)[:50]
                     if not company_data.get("tipo_empresa"):
@@ -464,16 +463,8 @@ def process_import(
                             company_db_id = ins.data[0]["id"]
                             results["companies_created"] += 1
                     except Exception as insert_exc:
-                        if _db_code(insert_exc) == "23505" and "company_id" in str(insert_exc):
-                            # company_id conflict → fall back to CNPJ digits unconditionally
-                            company_data["company_id"] = re.sub(r"\D", "", cnpj)[:50]
-                            ins2 = supabase.table("companies").insert(company_data).execute()
-                            if ins2.data:
-                                company_db_id = ins2.data[0]["id"]
-                                results["companies_created"] += 1
-                        else:
-                            results["errors"].append(_friendly_error(insert_exc, f"Empresa '{label}'"))
-                            continue
+                        results["errors"].append(_friendly_error(insert_exc, f"Empresa '{label}'"))
+                        continue
             except Exception as exc:
                 results["errors"].append(_friendly_error(exc, f"Empresa '{label}'"))
                 continue

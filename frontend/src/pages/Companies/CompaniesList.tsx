@@ -24,7 +24,8 @@ const ERROR_MESSAGES: Record<string, string> = {
 function parseApiErrors(err: any): Record<string, string> {
   const errors: Record<string, string> = {};
   try {
-    const data = err?.response?.data;
+    // ApiError from fetchApi, or legacy axios-style shape
+    const data = err?.data ?? err?.response?.data;
     const details = data?.detail;
     if (Array.isArray(details)) {
       details.forEach((d: any) => {
@@ -32,7 +33,6 @@ function parseApiErrors(err: any): Record<string, string> {
         const type = d.type || '';
         const ctx = d.ctx || {};
 
-        // Custom messages by type
         let msg = '';
         if (type === 'string_too_short') {
           msg = `deve ter no mínimo ${ctx.min_length} caracteres`;
@@ -58,7 +58,12 @@ function parseApiErrors(err: any): Record<string, string> {
         }
       });
     } else if (typeof details === 'string') {
+      if (/cnpj/i.test(details)) {
+        errors.cnpj = details;
+      }
       errors._global = details;
+    } else if (typeof err?.message === 'string' && err.message && !err.message.startsWith('API error:')) {
+      errors._global = err.message;
     } else {
       errors._global = 'Erro ao salvar. Tente novamente.';
     }
@@ -235,6 +240,22 @@ export default function CompaniesList() {
       return;
     }
 
+    // Soft client-side CNPJ duplicate check (backend remains source of truth)
+    if (formData.cnpj && companies) {
+      const cnpjNorm = formData.cnpj.replace(/\D/g, '');
+      const dup = companies.find((c) => {
+        if (editingId && c.id === editingId) return false;
+        return (c.cnpj || '').replace(/\D/g, '') === cnpjNorm;
+      });
+      if (dup) {
+        setErrors({
+          cnpj: 'CNPJ já cadastrado',
+          _global: `CNPJ já cadastrado (${dup.empresa})`,
+        });
+        return;
+      }
+    }
+
     // Filter out empty fields and convert vencimento to number
     const data: Record<string, any> = {};
     if (formData.company_id) data.company_id = formData.company_id;
@@ -307,7 +328,10 @@ export default function CompaniesList() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="Company ID" value={formData.company_id} onChange={(v) => setFormData({ ...formData, company_id: v })} required error={errors.company_id} />
+            <div>
+              <Input label="Company ID" value={formData.company_id} onChange={(v) => setFormData({ ...formData, company_id: v })} required error={errors.company_id} />
+              <p className="text-xs text-gray-400 mt-1">Pode ser compartilhado entre empresas do mesmo grupo (matriz/filial).</p>
+            </div>
             <Input label="Empresa" value={formData.empresa} onChange={(v) => setFormData({ ...formData, empresa: v })} required error={errors.empresa} />
             <Input label="CNPJ" value={formData.cnpj} onChange={(v) => setFormData({ ...formData, cnpj: v })} required error={errors.cnpj} placeholder="00.000.000/0001-00" />
             <Input label="Razão Social" value={formData.razao_social} onChange={(v) => setFormData({ ...formData, razao_social: v })} error={errors.razao_social} />

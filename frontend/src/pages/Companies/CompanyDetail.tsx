@@ -40,7 +40,7 @@ export default function CompanyDetail() {
       toast.success('Empresa atualizada com sucesso');
     },
     onError: (err: any) => {
-      const data = err?.response?.data;
+      const data = err?.data ?? err?.response?.data;
       const details = data?.detail;
       if (Array.isArray(details)) {
         const errs: Record<string, string> = {};
@@ -49,6 +49,14 @@ export default function CompanyDetail() {
           errs[field] = d.msg || d.type;
         });
         setErrors(errs);
+      } else if (typeof details === 'string') {
+        if (/cnpj/i.test(details)) {
+          setErrors({ cnpj: details });
+        } else {
+          setErrors({ _global: details });
+        }
+        toast.error(details);
+        return;
       }
       toast.error('Erro ao atualizar empresa');
     },

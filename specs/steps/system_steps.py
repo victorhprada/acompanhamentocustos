@@ -338,17 +338,23 @@ def step_cnpj_unique(context):
     conn.close()
     assert result is not None, "UNIQUE constraint/index not found on cnpj"
 
-@then('the company_id field is unique')
-def step_company_id_unique(context):
+@then('the company_id field is not unique')
+def step_company_id_not_unique(context):
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
-        SELECT indexname FROM pg_indexes 
+        SELECT indexname FROM pg_indexes
         WHERE tablename = 'companies' AND indexdef LIKE '%company_id%' AND indexdef LIKE '%UNIQUE%'
     """)
     result = cur.fetchone()
     conn.close()
-    assert result is not None, "UNIQUE constraint/index not found on company_id"
+    assert result is None, f"UNIQUE constraint/index still present on company_id: {result}"
+
+
+@then('the company_id field is unique')
+def step_company_id_unique(context):
+    # Legacy step kept for older feature files; company_id is intentionally non-unique.
+    step_company_id_not_unique(context)
 
 @then('the is_active flag defaults to true')
 def step_is_active_default(context):

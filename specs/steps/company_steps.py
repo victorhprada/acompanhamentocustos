@@ -114,14 +114,14 @@ def step_click_save_company(context):
 
     # Handle duplicate - only retry if NOT expecting duplicate
     expect_dup = getattr(context, 'expect_duplicate', False)
-    if response.status_code == 400 and 'already exists' in str(response.json()).lower() and not expect_dup:
+    error_text = str(response.json()).lower() if response.status_code == 400 else ""
+    is_dup = 'already exists' in error_text or 'já cadastrado' in error_text
+    if response.status_code == 400 and is_dup and not expect_dup:
         import time
         suffix = str(int(time.time()))[-4:]
         original_data = context.form_data.copy()
 
-        # Try making both company_id and CNPJ unique
-        if 'company_id' in original_data:
-            context.form_data['company_id'] = f"{original_data['company_id']}-{suffix}"
+        # Retry with a unique CNPJ (company_id may be shared)
         if 'cnpj' in original_data:
             # Change last 4 digits
             cnpj = original_data['cnpj'].replace('/', '').replace('.', '').replace('-', '')
@@ -278,7 +278,7 @@ def step_company_validation_error(context, message):
     error_text = str(json_data).lower()
     expected = message.lower()
     # Check if any part of the message matches (handles "Empresa is required" vs "Field required")
-    assert expected in error_text or "detail" in error_text or "required" in error_text or "already exists" in error_text, \
+    assert expected in error_text or "detail" in error_text or "required" in error_text or "already exists" in error_text or "já cadastrado" in error_text, \
         f"Expected '{message}' in response, got: {json_data}"
 
 @then('the company is not created')

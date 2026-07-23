@@ -140,11 +140,40 @@ async function fetchWithAuth(path: string, options?: RequestInit, retried = fals
   return response;
 }
 
+// ─── API error (preserves FastAPI detail body) ────────────────────────────────
+export class ApiError extends Error {
+  status: number;
+  data: unknown;
+
+  constructor(status: number, data: unknown) {
+    const detail =
+      typeof data === 'object' && data !== null && 'detail' in data
+        ? (data as { detail: unknown }).detail
+        : undefined;
+    const message =
+      typeof detail === 'string'
+        ? detail
+        : `API error: ${status}`;
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.data = data;
+  }
+}
+
 // ─── Core fetch helper ────────────────────────────────────────────────────────
 export async function fetchApi<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetchWithAuth(path, options);
 
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  if (!response.ok) {
+    let data: unknown = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+    throw new ApiError(response.status, data);
+  }
   if (response.status === 204) return null as T;
   return response.json();
 }
@@ -216,7 +245,15 @@ export const uploadImportFile = async (file: File) => {
     body: form,
   });
 
-  if (!response.ok) throw new Error(`API error: ${response.status}`);
+  if (!response.ok) {
+    let data: unknown = null;
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+    throw new ApiError(response.status, data);
+  }
 
   return response.json() as Promise<{
     file_path: string;
