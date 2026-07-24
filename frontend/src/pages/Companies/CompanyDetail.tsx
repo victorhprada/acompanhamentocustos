@@ -37,6 +37,7 @@ export default function CompanyDetail() {
       setEditing(false);
       setErrors({});
       queryClient.invalidateQueries({ queryKey: ['company', id] });
+      queryClient.invalidateQueries({ queryKey: ['companies'] });
       toast.success('Empresa atualizada com sucesso');
     },
     onError: (err: any) => {
@@ -52,6 +53,8 @@ export default function CompanyDetail() {
       } else if (typeof details === 'string') {
         if (/cnpj/i.test(details)) {
           setErrors({ cnpj: details });
+        } else if (/company.?id/i.test(details)) {
+          setErrors({ company_id: details });
         } else {
           setErrors({ _global: details });
         }
@@ -101,6 +104,7 @@ export default function CompanyDetail() {
     setEditing(true);
     setErrors({});
     setEditForm({
+      company_id: company.company_id || '',
       empresa: company.empresa,
       cnpj: company.cnpj,
       razao_social: company.razao_social,
@@ -120,7 +124,12 @@ export default function CompanyDetail() {
       setErrors({ tipo_empresa: 'Selecione Matriz ou Filial' });
       return;
     }
+    if (!editForm.company_id?.trim()) {
+      setErrors({ company_id: 'Company ID é obrigatório' });
+      return;
+    }
     const data: Record<string, any> = {};
+    data.company_id = editForm.company_id.trim();
     if (editForm.empresa) data.empresa = editForm.empresa;
     if (editForm.cnpj) data.cnpj = editForm.cnpj;
     if (editForm.razao_social) data.razao_social = editForm.razao_social;
@@ -148,6 +157,10 @@ export default function CompanyDetail() {
                 <h3 className="text-lg font-semibold text-gray-800">Editando Empresa</h3>
                 {errors._global && <p className="text-red-600 text-sm bg-red-50 p-2 rounded">{errors._global}</p>}
                 <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <InputEdit label="Company ID" value={editForm.company_id || ''} onChange={(v) => setEditForm({...editForm, company_id: v})} error={errors.company_id} />
+                    <p className="text-xs text-gray-400 mt-1">Pode ser compartilhado entre empresas do mesmo grupo (matriz/filial).</p>
+                  </div>
                   <InputEdit label="Empresa" value={editForm.empresa || ''} onChange={(v) => setEditForm({...editForm, empresa: v})} error={errors.empresa} />
                   <InputEdit label="CNPJ" value={editForm.cnpj || ''} onChange={(v) => setEditForm({...editForm, cnpj: v})} error={errors.cnpj} />
                   <InputEdit label="Razão Social" value={editForm.razao_social || ''} onChange={(v) => setEditForm({...editForm, razao_social: v})} />

@@ -43,6 +43,7 @@ class CompanyCreate(CompanyBase):
 
 
 class CompanyUpdate(BaseModel):
+    company_id: Optional[str] = Field(None, min_length=1, max_length=50)
     empresa: Optional[str] = Field(None, max_length=255)
     cnpj: Optional[str] = Field(None, max_length=18)
     razao_social: Optional[str] = Field(None, max_length=255)
