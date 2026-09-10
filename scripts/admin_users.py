@@ -34,14 +34,12 @@ ROLES = ['viewer', 'analyst', 'admin']
 PASSWORD_SYMBOLS = '!@#$%&*+-=?'
 
 
-def require_config(need_db=False):
+def require_config():
     missing = []
     if not SUPABASE_URL:
         missing.append('SUPABASE_URL')
     if not SERVICE_ROLE_KEY:
         missing.append('SUPABASE_SERVICE_ROLE_KEY')
-    if need_db and not DATABASE_URL:
-        missing.append('DATABASE_URL')
     if missing:
         print(f"[ERRO] Variaveis ausentes: {', '.join(missing)} (configure em backend/.env)")
         sys.exit(1)
