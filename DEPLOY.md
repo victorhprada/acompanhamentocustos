@@ -86,6 +86,23 @@ Go to **Settings → Secrets and variables → Actions** and add:
 | `SUPABASE_ANON_KEY` | Anon/public key |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role secret key |
 
+### Acceptance specs (behave) in CI
+
+The behave suite is an acceptance suite: it requires a running backend and a
+**test** Supabase project (with `admin/analyst/viewer@test.com` users created via
+`scripts/admin_users.py` and migrations applied). It only runs in CI when a test
+environment is configured — never point it at production, the suite writes data.
+
+| Variable/Secret | Value |
+|--------|-------|
+| `SPECS_API_BASE_URL` (variable) | Test backend URL, e.g. `https://api-test.example.com/api/v1` |
+| `SPECS_SUPABASE_URL` (secret) | Test Supabase project URL |
+| `SPECS_SUPABASE_ANON_KEY` (secret) | Test project anon key |
+| `SPECS_SUPABASE_SERVICE_ROLE_KEY` (secret) | Test project service role key |
+| `SPECS_DATABASE_URL` (secret) | Test project pooler connection string |
+
+Without these, CI runs only the backend boot check (uvicorn + `/health`).
+
 ---
 
 ## 5. Health Checks

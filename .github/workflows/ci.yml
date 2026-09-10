@@ -10,18 +10,6 @@ jobs:
   # ── Backend Tests ───────────────────────────────────────
   backend-test:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: testpassword
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
 
@@ -33,21 +21,48 @@ jobs:
           cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
-        run: |
-          pip install -r backend/requirements.txt
-          pip install psycopg2-binary pytest
+        run: pip install -r backend/requirements.txt
 
-      - name: Run specs (behave)
-        run: |
-          pip install behave python-dotenv requests
-          cd backend
-          cd ..
-          behave specs/ --stop
+      # Verifica que a app sobe (imports, Settings, rotas). Placeholders bastam:
+      # o cliente Supabase so e criado por request, nunca no boot.
+      - name: Boot check (uvicorn + /health)
+        working-directory: backend
         env:
-          API_BASE_URL: http://localhost:8000/api/v1
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          DATABASE_URL: postgresql://postgres:testpassword@localhost:5432/postgres
+          SUPABASE_URL: https://placeholder.supabase.co
+          SUPABASE_ANON_KEY: placeholder
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          SECRET_KEY: ci-boot-check
+        run: |
+          uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/uvicorn.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && exit 0
+            sleep 1
+          done
+          cat /tmp/uvicorn.log
+          echo "::error::Backend nao subiu em 30s"
+          exit 1
+
+      # A suite behave e de aceitacao: precisa de um ambiente de TESTE completo
+      # (backend no ar + projeto Supabase de teste com admin/analyst/viewer@test.com
+      # e migrations aplicadas). NUNCA apontar para producao — a suite escreve dados.
+      # Para habilitar: variable SPECS_API_BASE_URL + secrets SPECS_SUPABASE_URL,
+      # SPECS_SUPABASE_ANON_KEY, SPECS_SUPABASE_SERVICE_ROLE_KEY e SPECS_DATABASE_URL
+      # (pooler do projeto Supabase de teste).
+      - name: Run specs (behave)
+        if: ${{ vars.SPECS_API_BASE_URL != '' }}
+        env:
+          API_BASE_URL: ${{ vars.SPECS_API_BASE_URL }}
+          SUPABASE_URL: ${{ secrets.SPECS_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SPECS_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SPECS_SUPABASE_SERVICE_ROLE_KEY }}
+          DATABASE_URL: ${{ secrets.SPECS_DATABASE_URL }}
+        run: behave specs/ --stop
+
+      - name: Specs skipped (ambiente de teste nao configurado)
+        if: ${{ vars.SPECS_API_BASE_URL == '' }}
+        run: |
+          echo "Specs de aceitacao puladas: defina a variable SPECS_API_BASE_URL"
+          echo "e os secrets SPECS_* apontando para o ambiente de teste."
 
   # ── Frontend Build ──────────────────────────────────────
   frontend-build:
