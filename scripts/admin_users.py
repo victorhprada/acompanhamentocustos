@@ -7,7 +7,8 @@ Uso:
     python scripts/admin_users.py create-user --email EMAIL --name "Nome" [--role viewer|analyst|admin]
 
 Requisitos (mesmos do backend/.env):
-    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DATABASE_URL
+    SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+    DATABASE_URL (opcional; sem ele o profile e gravado via PostgREST)
 
 Nenhuma credencial fica salva neste arquivo: senhas sao geradas em
 runtime e exibidas uma unica vez no terminal.
@@ -88,6 +89,17 @@ def generate_password(length=16):
 
 
 def upsert_profile(user_id, email, full_name, role):
+    if not DATABASE_URL:
+        r = requests.post(
+            f'{SUPABASE_URL}/rest/v1/profiles',
+            headers={**headers(with_json=True), 'Prefer': 'resolution=merge-duplicates'},
+            json={'id': user_id, 'email': email, 'full_name': full_name, 'role': role},
+            timeout=30,
+        )
+        if r.status_code not in (200, 201):
+            raise RuntimeError(f'Falha no upsert via PostgREST: {r.status_code} {r.text}')
+        return
+
     import psycopg2
 
     conn = psycopg2.connect(DATABASE_URL)
@@ -155,7 +167,7 @@ def block_test_users(assume_yes):
 
 
 def create_user(email, full_name, role):
-    require_config(need_db=True)
+    require_config()
     password = generate_password()
 
     existing = next((u for u in list_users() if u.get('email') == email), None)
