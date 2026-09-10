@@ -101,7 +101,7 @@ Go to **Settings → Secrets and variables → Actions** and add:
 
 - [ ] All env vars set in hosting platform
 - [ ] Supabase migrations applied
-- [ ] Test users created (run `scripts/create_test_users.py`)
+- [ ] Users created (run `scripts/admin_users.py create-user --email ... --name ... --role ...`)
 - [ ] Frontend → Backend CORS configured
 - [ ] Health check endpoints responding
 - [ ] CI/CD pipeline passing on main branch
